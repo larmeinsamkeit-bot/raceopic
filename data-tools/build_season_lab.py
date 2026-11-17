@@ -1,6 +1,7 @@
 """Build one laboratory dataset per completed 2026 Grand Prix."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from http.client import IncompleteRead
 import gzip
 import hashlib
 import json
@@ -46,7 +47,8 @@ def get(cache, route, **params):
             if error.code not in (429, 500, 502, 503, 504) or attempt == 4:
                 raise
             sleep(int(error.headers.get("Retry-After", 2)) if error.code == 429 else 2 * (attempt + 1))
-        except (URLError, TimeoutError):
+        except (URLError, TimeoutError, IncompleteRead, ConnectionError):
+            # Long telemetry transfers are occasionally cut off mid-stream; the next try usually completes.
             if attempt == 4:
                 raise
             sleep(2 * (attempt + 1))
@@ -114,7 +116,7 @@ def group_by_window(laps):
     if group:
         yield group
 
-def telemetry_for(cache, route, roster):
+def telemetry_for(cache, route, roster, laps_per_driver=4):
     laps = get(cache, route + "/laps")
     candidates = {str(number): [] for number in roster}
     for lap in laps:
@@ -142,14 +144,13 @@ def telemetry_for(cache, route, roster):
                 if value is not None:
                     raw[number].append(value)
 
-    extra = {"63", "12"}
-    if "/italian/" in route:
-        extra.update({"1", "3"})
-    capture_laps([lap for number, choices in candidates.items() for lap in choices[:(2 if number in extra else 1)]])
-    fallback = [choices[1 if number not in extra else 2]
-                for number, choices in candidates.items()
-                if not raw[number] and len(choices) > (1 if number not in extra else 2)]
-    capture_laps(fallback)
+    # Fastest clean laps first; top up from slower candidates when a lap fails to capture.
+    capture_laps([lap for choices in candidates.values() for lap in choices[:laps_per_driver]])
+    top_up = [lap for number, choices in candidates.items()
+              for lap in [c for c in choices if (number, c["lap"]) not in attempted][:laps_per_driver - len(raw[number])]
+              if len(raw[number]) < laps_per_driver]
+    if top_up:
+        capture_laps(top_up)
     result = build_telemetry(raw, consensus=True)
     retry = [lap for number, choices in candidates.items() if not result["laps"].get(number)
              for lap in [candidate for candidate in choices if (number, candidate["lap"]) not in attempted][:2]]
@@ -158,7 +159,7 @@ def telemetry_for(cache, route, roster):
         result = build_telemetry(raw, consensus=True)
     return result
 
-def season_data(cache, dist, rounds):
+def season_data(cache, dist, rounds, laps_per_driver=4):
     snapshot = read(dist / "season-2026.json")
     archive = read(dist / "archive-2026.json")
     catalogue = get(cache, "/seasons/2026")
@@ -181,7 +182,7 @@ def season_data(cache, dist, rounds):
         source["drivers_selected"] = sorted(roster, key=lambda n: (n not in (63, 12), n != 63, n))
         slug = event["slug"]
         name = f"{NAMES[slug]}大奖赛" if slug in NAMES else round_data["name"]
-        telemetry = telemetry_for(cache, f"/sessions/2026/{slug}/{quali['slug']}", roster)
+        telemetry = telemetry_for(cache, f"/sessions/2026/{slug}/{quali['slug']}", roster, laps_per_driver)
         entry = build(f"2026-r{round_no:02}", source, name=name, telemetry=telemetry)
         entry.update(round=round_no, date=round_data["date"], telemetrySource="F1Archive")
         write(output / f"r{round_no:02}.json", entry)
@@ -189,7 +190,7 @@ def season_data(cache, dist, rounds):
               f"{len(telemetry['laps'])} telemetry drivers, {sum(map(len, telemetry['laps'].values()))} laps", flush=True)
 
     work = [row for row in selected_rounds if not rounds or row["round"] in rounds]
-    with ThreadPoolExecutor(max_workers=5) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         list(pool.map(process, work))
     index = []
     for row in selected_rounds:
@@ -204,7 +205,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--dist", type=Path, required=True)
+    parser.add_argument("--laps", type=int, default=4, help="qualifying laps to keep per driver")
     parser.add_argument("round", nargs="*", type=int)
     args = parser.parse_args()
     args.cache.mkdir(parents=True, exist_ok=True)
-    season_data(args.cache, args.dist, args.round)
+    season_data(args.cache, args.dist, args.round, args.laps)

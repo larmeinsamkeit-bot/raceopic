@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Noto+Sans+SC:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="pitwall.css">
   <script src="replay.js" defer></script>
+  <script src="zoom.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
@@ -89,6 +90,13 @@
         <div id="trackContent" class="track-stage">
           <div class="map-box">
             <div class="map-label"><strong id="circuit"></strong><span id="focusCaption"></span></div>
+            <div class="zoom-bar" role="group" aria-label="赛道图缩放">
+              <button type="button" id="zoomOut" aria-label="缩小">−</button>
+              <output id="zoomLevel" aria-live="polite">1.0×</output>
+              <button type="button" id="zoomIn" aria-label="放大">+</button>
+              <button type="button" id="zoomReset" class="zoom-text">全图</button>
+              <label id="zoomFollowWrap" class="zoom-follow" hidden>跟随 <select id="zoomFollow" aria-label="镜头跟随车手"></select></label>
+            </div>
             <div id="trackMap" class="track-map"></div>
             <div id="mapHint" class="map-hint"></div>
             <div id="replayControls" class="replay-controls" hidden>

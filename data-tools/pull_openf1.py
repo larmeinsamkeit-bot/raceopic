@@ -8,6 +8,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import urlopen
 
+LAPS_PER_DRIVER = 5  # fastest complete qualifying laps kept per selected driver
+
 EVENTS = [
     ("bahrain", 2024, "Sakhir", [63, 44, 1, 16]),
     ("silverstone", 2024, "Silverstone", [44, 63, 1, 4]),
@@ -63,7 +65,7 @@ def download(cache, event):
     quali_laps = fetch(cache, "laps", quali_query)
     for number in selected_drivers:
         candidates = sorted((lap for lap in quali_laps if lap["driver_number"] == number and complete(lap)),
-                            key=lambda lap: lap["lap_duration"])[:2]
+                            key=lambda lap: lap["lap_duration"])[:LAPS_PER_DRIVER]
         result["telemetry"][str(number)] = []
         for lap in candidates:
             start = datetime.fromisoformat(lap["date_start"])

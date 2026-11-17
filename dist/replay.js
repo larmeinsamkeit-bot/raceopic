@@ -35,14 +35,14 @@ function replayMap(laps, drivers, reference, min, max, scale) {
   const bends = state.bends.map((bend, i) => {
     if (bend < min || bend > max) return '';
     const [x, y] = reference[bend];
-    return `<g class="replay-bend" data-bend="${bend}" transform="translate(${x} ${y}) scale(${scale})">
+    return `<g class="replay-bend" data-bend="${bend}" transform="translate(${x} ${y})"><g class="glyph" data-s="${scale}">
       <title>弯区 ${i + 1}</title><circle class="bend-hit" r="34"/><circle r="18"/><text y="1">${i + 1}</text>
-    </g>`;
+    </g></g>`;
   }).join('');
   const cars = drivers.map(({code}, i) =>
     `<g class="replay-car car-${i}" style="--car:${colours[i]}">
       <path class="replay-tail" id="replayTail${i}"/>
-      <g id="replayDot${i}"><g transform="scale(${scale})">
+      <g id="replayDot${i}"><g class="glyph" data-s="${scale}" transform="scale(${scale})">
         <circle r="${i ? 12 : 17}"/><text y="${i ? 43 : -22}">${code}</text>
       </g></g>
     </g>`).join('');
@@ -111,6 +111,7 @@ function updateReplay(elapsed) {
     const waiting = elapsed < samples[min][5];
     const passed = elapsed >= samples[max][5];
     replay.dots[i].setAttribute('transform', `translate(${point[0]} ${point[1]})`);
+    if (!waiting) zoomFollow(i, point);
     replay.dots[i].style.display = waiting ? 'none' : '';
     replay.tails[i].setAttribute('d', waiting ? '' : path([...samples.slice(Math.max(min, index - 7), index + 1), point]));
     replay.speedLabels[i].textContent = waiting ? '—' : `${Math.round(point[2])} km/h`;

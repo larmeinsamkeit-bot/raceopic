@@ -265,6 +265,7 @@ def build_telemetry(raw, *, consensus=False):
                     interp(distances, [p[2] for p in center], fraction)) for fraction in positions]
     result = defaultdict(list)
     for driver, captures in raw.items():
+        captures = sorted(captures, key=lambda capture: capture[0]["lap_duration"])
         for lap, points, car in captures:
             aligned = align(points, center, distances)
             if not aligned:
