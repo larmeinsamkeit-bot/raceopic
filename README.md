@@ -22,3 +22,19 @@ python3 -B data-tools/pull_season.py --cache /tmp/raceopic-2026 --output dist al
 python3 -B data-tools/pull_season.py --cache /tmp/raceopic-2026 --output dist telemetry
 python3 -B data-tools/build_dataset.py /tmp/raceopic-archive dist/events.json /tmp/raceopic-2026
 ```
+
+## 赛前策略预测
+
+`data-tools/predict_strategy.py` 用同站往年数据（越近权重越高）预测停站次数、配方顺序和首停窗口，并自动用“去掉最近一年”的回测给出基线分数。预测文件须在正赛发车前提交；提交时间就是盲测证明。
+
+```sh
+python3 -B data-tools/predict_strategy.py predict --cache /tmp/raceopic-predict --output dist/predictions/2026-las-vegas.json
+# 正赛结束后：
+python3 -B data-tools/predict_strategy.py evaluate --cache /tmp/raceopic-predict --output dist/predictions/2026-las-vegas.json
+```
+
+赛季页的“策略预测”面板读取该文件，赛后自动显示准确度。
+
+## 部署
+
+推送到 `main` 后，`.github/workflows/pages.yml` 会把 `dist/` 发布到 GitHub Pages。首次使用需在仓库 Settings → Pages 将 Source 设为 GitHub Actions。

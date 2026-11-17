@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="stylesheet" href="theme.css">
   <script src="season.js" defer></script>
+  <script src="predict.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -21,6 +22,7 @@
         <a href="index.html#overview">正赛节奏</a>
         <a href="index.html#strategy">策略模拟</a>
         <a href="season.html" aria-current="page">2026 赛季</a>
+        <a href="#prediction">策略预测</a>
         <a href="#roundArchive">数据档案</a>
       </nav>
     </div>
@@ -66,6 +68,19 @@
         </section>
       </div>
 
+      <section class="panel prediction-panel" id="prediction" aria-labelledby="predictionTitle" hidden>
+        <div class="season-panel-heading">
+          <div><div class="eyebrow" id="predictionEyebrow">赛前策略预测</div><h2 id="predictionTitle"></h2></div>
+          <a id="predictionSource" class="back-link" href="predictions/2026-las-vegas.json">预测文件 JSON ↗</a>
+        </div>
+        <p id="predictionLead" class="panel-note"></p>
+        <div class="prediction-grid" id="predictionCards"></div>
+        <div class="prediction-split">
+          <div><h3>停站次数概率</h3><div id="stopBars" class="stop-bars"></div></div>
+          <div><h3>最可能的配方顺序</h3><ol id="sequenceList" class="sequence-list"></ol></div>
+        </div>
+        <div id="predictionBacktest" class="prediction-backtest"></div>
+      </section>
       <section class="panel result-panel" aria-labelledby="resultTitle">
         <div class="season-panel-heading">
           <div><div class="eyebrow">分站分类成绩</div><h2 id="resultTitle">本轮成绩</h2></div>

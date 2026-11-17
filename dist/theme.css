@@ -286,3 +286,31 @@ footer { font-size: 12px; }
   .calendar-panel .season-panel-heading { flex-wrap: wrap; }
   .calendar-controls select { max-width: calc(100vw - 160px); }
 }
+
+/* ---------- Pre-race prediction ---------- */
+.prediction-panel { margin-top: 24px; background: #0c1514; border-color: var(--teal-line); }
+.prediction-panel .panel-note { margin-top: 8px; max-width: 900px; }
+.prediction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+.prediction-grid article { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 6px; }
+.prediction-grid article.accent { background: var(--teal-surface); border-color: var(--teal-line); }
+.prediction-grid strong { font: 600 26px var(--mono); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.prediction-grid .accent strong { color: var(--petronas); }
+.prediction-grid small { color: var(--muted); font-size: 12px; }
+.prediction-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.prediction-split h3 { font-size: 15px; margin: 0 0 12px; }
+.stop-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 56px; align-items: center; gap: 10px; padding: 6px 0; color: var(--muted); }
+.stop-row.best { color: var(--text); font-weight: 600; }
+.stop-track { height: 10px; background: #202629; border-radius: 5px; overflow: hidden; }
+.stop-track div { height: 100%; background: #90a1a4; border-radius: 5px; }
+.stop-row.best .stop-track div { background: var(--petronas); }
+.stop-row .numeric, .sequence-list .numeric { font-family: var(--mono); text-align: right; }
+.sequence-list { list-style: none; margin: 0; padding: 0; }
+.sequence-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.sequence-list li:first-child { border-top: 0; }
+.sequence { display: flex; align-items: center; gap: 6px; }
+.tyre-chip { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font: 700 12px var(--mono); color: #090b0c; }
+.tyre-chip.tyre-S { background: #ed7476; } .tyre-chip.tyre-M { background: #e6ca66; } .tyre-chip.tyre-H { background: #f2f6f7; }
+.tyre-chip.tyre-I { background: #63c893; } .tyre-chip.tyre-W { background: #73a9e5; }
+.tyre-arrow { color: var(--muted); font-size: 12px; }
+.prediction-backtest { margin-top: 20px; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-deep); color: var(--silver); font-size: 13px; line-height: 1.8; }
+.prediction-backtest:empty { display: none; }
