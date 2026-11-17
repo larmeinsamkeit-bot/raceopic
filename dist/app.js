@@ -305,11 +305,13 @@ function drawPace(rows, drivers) {
     $('chart').onpointermove = null;
     return;
   }
-  const low = Math.floor(Math.min(...times) - .2);
-  const high = Math.ceil(Math.max(...times) + .2);
+  const sorted = [...times].sort((a, b) => a - b);
+  const low = Math.floor(sorted[0] - .2);
+  // Keep one slow lap (SC restart, traffic) from flattening the whole race; it is pinned to the top edge.
+  const high = Math.ceil(Math.min(sorted[sorted.length - 1], quantile(sorted, .9) + 2) + .2);
   const n = state.event.totalLaps;
   const x = lap => 38 + (lap - 1) / (n - 1) * 642;
-  const y = time => 198 - (time - low) / (high - low) * 175;
+  const y = time => 198 - (Math.min(time, high) - low) / (high - low) * 175;
   let grid = '';
   for (let i = 0; i < 5; i++) {
     const value = low + (high - low) * i / 4;
@@ -331,6 +333,7 @@ function drawPace(rows, drivers) {
   $('chart').innerHTML = `<svg viewBox="0 0 700 230" preserveAspectRatio="none" role="img" aria-label="两位车手的正赛逐圈圈速">
     ${grid}${lines}<line id="paceCursor" class="chart-cursor" y1="14" y2="200" opacity="0" stroke-dasharray="3 3"/>
   </svg>`;
+  drawDelta(rows, drivers, x);
   $('tooltip').textContent = '在图上移动或轻触，查看单圈数据。';
   $('chart').onpointermove = e => {
     const rect = $('chart').getBoundingClientRect();
@@ -346,6 +349,23 @@ function drawPace(rows, drivers) {
       return `${d.code} ${found ? lapTime(found.time) + (tyre ? `  ${tyre}${found.age ?? ''}` : '') : original?.excluded || '缺少数据'}`;
     }).join(' / ');
   };
+}
+
+function drawDelta(rows, drivers, x) {
+  const second = new Map(rows[1].map(r => [r.lap, r]));
+  const pairs = rows[0].flatMap(a => second.has(a.lap) ? [[a.lap, a.time - second.get(a.lap).time]] : []);
+  const wins = [pairs.filter(([, d]) => d < 0).length, pairs.filter(([, d]) => d > 0).length];
+  $('deltaLegend').innerHTML = drivers.map((d, i) =>
+    `<span><i style="background:var(--${i ? 'silver' : 'petronas'})"></i>${d.code} 较快 ${wins[i]} 圈</span>`).join('');
+  const width = Math.max(3, 642 / state.event.totalLaps * .62);
+  const bars = pairs.map(([lap, delta]) => {
+    const h = Math.max(1.5, Math.min(Math.abs(delta), 2) / 2 * 40);
+    const y = delta > 0 ? 45 - h : 45;
+    return `<rect x="${x(lap) - width / 2}" y="${y}" width="${width}" height="${h}" rx="1" fill="var(--${delta > 0 ? 'silver' : 'petronas'})"><title>第 ${lap} 圈 · ${signed(delta)} s</title></rect>`;
+  }).join('');
+  $('deltaChart').innerHTML = `<svg viewBox="0 0 700 90" preserveAspectRatio="none" role="img" aria-label="每圈圈速差：向上为 ${drivers[1].code} 较快，向下为 ${drivers[0].code} 较快">
+    <line x1="38" x2="680" y1="45" y2="45" stroke="var(--line-strong)" vector-effect="non-scaling-stroke"/>
+    <text x="1" y="12" class="chart-label">+2s</text><text x="1" y="88" class="chart-label">−2s</text>${bars}</svg>`;
 }
 
 function renderStints() {

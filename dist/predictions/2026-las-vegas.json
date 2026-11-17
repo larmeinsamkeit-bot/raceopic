@@ -1,0 +1,135 @@
+{
+  "race": {
+    "year": 2026,
+    "location": "Las Vegas",
+    "laps": 50,
+    "session_key": 11420,
+    "date_start": "2026-11-22T04:00:00+00:00"
+  },
+  "created": "2026-11-17T17:43:59+00:00",
+  "method": "Recency-weighted frequencies over full-distance runners in earlier editions; first stop scaled by race distance.",
+  "history": [
+    {
+      "year": 2023,
+      "session_key": 9189,
+      "laps": 51,
+      "drivers": 18,
+      "weight": 1
+    },
+    {
+      "year": 2024,
+      "session_key": 9644,
+      "laps": 50,
+      "drivers": 18,
+      "weight": 2
+    },
+    {
+      "year": 2025,
+      "session_key": 9858,
+      "laps": 50,
+      "drivers": 17,
+      "weight": 3
+    }
+  ],
+  "prediction": {
+    "most_likely_stops": 1,
+    "stop_probabilities": {
+      "1": 0.495,
+      "2": 0.468,
+      "3": 0.037
+    },
+    "top_sequences": [
+      {
+        "sequence": "M-H",
+        "probability": 0.368
+      },
+      {
+        "sequence": "M-H-H",
+        "probability": 0.318
+      },
+      {
+        "sequence": "H-M",
+        "probability": 0.097
+      },
+      {
+        "sequence": "H-M-H",
+        "probability": 0.065
+      },
+      {
+        "sequence": "M-H-M",
+        "probability": 0.039
+      }
+    ],
+    "first_stop_window": {
+      "from": 10,
+      "median": 16,
+      "to": 21
+    }
+  },
+  "baseline_backtest": {
+    "target_year": 2025,
+    "trained_on": [
+      2023,
+      2024
+    ],
+    "prediction": {
+      "most_likely_stops": 2,
+      "stop_probabilities": {
+        "1": 0.167,
+        "2": 0.759,
+        "3": 0.074
+      },
+      "top_sequences": [
+        {
+          "sequence": "M-H-H",
+          "probability": 0.519
+        },
+        {
+          "sequence": "M-H",
+          "probability": 0.148
+        },
+        {
+          "sequence": "H-M-H",
+          "probability": 0.13
+        },
+        {
+          "sequence": "S-H-H",
+          "probability": 0.056
+        },
+        {
+          "sequence": "M-H-H-S",
+          "probability": 0.037
+        }
+      ],
+      "first_stop_window": {
+        "from": 10,
+        "median": 11,
+        "to": 16
+      }
+    },
+    "score": {
+      "drivers": 17,
+      "stop_count_hit_rate": 0.176,
+      "top_sequence_hit_rate": 0.118,
+      "first_stop_in_window": 0.059,
+      "first_stop_mae_laps": 11.12,
+      "stop_count_brier": 1.067,
+      "actual_stop_counts": {
+        "1": 14,
+        "2": 3
+      },
+      "actual_sequences": {
+        "M-H": 10,
+        "H-M": 3,
+        "M-H-H": 2,
+        "S-H": 1,
+        "M-H-M": 1
+      }
+    }
+  },
+  "caveats": [
+    "Earlier editions ran under different technical rules and tyre allocations.",
+    "Safety cars and red flags are not modelled; they move stop laps."
+  ],
+  "result": null
+}
