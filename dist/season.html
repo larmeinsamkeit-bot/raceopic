@@ -7,12 +7,23 @@
   <title>2026 赛季 · Raceopic</title>
   <link rel="stylesheet" href="style.css?v=season">
   <link rel="stylesheet" href="season.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="theme.css">
   <script src="season.js" defer></script>
 </head>
 <body>
-  <header class="season-header">
-    <a href="index.html" class="wordmark">Race<span>opic</span></a>
-    <a href="index.html#track" class="back-link">↗ 圈速与遥测实验室</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="wordmark">Race<span>opic</span></a>
+      <nav class="topnav" aria-label="主导航">
+        <a href="index.html#track">遥测实验室</a>
+        <a href="index.html#overview">正赛节奏</a>
+        <a href="index.html#strategy">策略模拟</a>
+        <a href="season.html" aria-current="page">2026 赛季</a>
+        <a href="#roundArchive">数据档案</a>
+      </nav>
+    </div>
   </header>
   <main class="season-main">
     <div class="hero season-hero">

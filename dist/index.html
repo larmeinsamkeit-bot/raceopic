@@ -6,28 +6,31 @@
   <meta name="description" content="用历届大奖赛的圈速、分段、遥测和轮胎数据比较 F1 车手">
   <title>Raceopic · F1 数据分析</title>
   <link rel="stylesheet" href="style.css?v=replay">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="theme.css">
   <script src="replay.js" defer></script>
   <script src="app.js?v=replay" defer></script>
 </head>
 <body>
-  <aside>
-    <a class="brand" href="#" aria-label="返回顶部">R<span>／</span></a>
-    <span class="rail-text">Raceopic</span>
-    <a class="rail-icon" href="season.html" title="2026 赛季积分榜">◈</a>
-    <a class="rail-icon active" href="#track" title="赛道与遥测">⌁</a>
-    <a class="rail-icon" href="#overview" title="正赛圈速">▥</a>
-    <a class="rail-icon" href="#strategy" title="策略模拟">↗</a>
-    <a class="rail-icon" href="#method" title="分析方法">ⓘ</a>
-  </aside>
-  <div class="shell">
-    <header>
-      <a href="#" class="wordmark">Race<span>opic</span><small>赛车数据实验室</small></a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#" class="wordmark">Race<span>opic</span></a>
+      <nav class="topnav" aria-label="主导航">
+        <a href="#track" aria-current="page">遥测实验室</a>
+        <a href="#overview">正赛节奏</a>
+        <a href="#strategy">策略模拟</a>
+        <a href="season.html">2026 赛季</a>
+        <a href="#method">分析方法</a>
+      </nav>
       <div class="header-right"><span class="status-dot"></span> OpenF1 历史数据</div>
-    </header>
+    </div>
+  </header>
+  <div class="shell">
     <main>
       <div class="hero">
-        <div><h1>每一圈，<span>都有答案。</span></h1><p>对照真实圈速、遥测和轮胎记录，找出两位车手的时间差来自哪里。</p></div>
-        <div class="hero-actions"><a href="season.html">2026 积分榜与数据 ↗</a><button id="export" disabled>↓ 导出正赛 CSV</button></div>
+        <div><div class="eyebrow">圈速与遥测实验室</div><h1>每一圈，<span>都有答案。</span></h1><p>对照真实圈速、遥测和轮胎记录，找出两位车手的时间差来自哪里。</p></div>
+        <div class="hero-actions"><button id="export" disabled>导出正赛 CSV</button></div>
       </div>
       <div id="loading" role="status" class="panel">正在读取历史赛事数据…</div>
       <div id="dashboard" hidden>
@@ -104,6 +107,8 @@
               <label class="check"><input id="sameTyre" type="checkbox"> 仅比较相同配方</label>
             </div>
             <div id="chart" class="chart"></div>
+            <div class="delta-head"><span>每圈差值</span><span id="deltaLegend"></span></div>
+            <div id="deltaChart" class="delta-chart"></div>
             <div id="tooltip" class="tooltip">在图上移动或轻触，查看单圈数据。</div>
           </section>
         </section>
