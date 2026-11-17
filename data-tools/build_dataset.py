@@ -9,7 +9,7 @@ from statistics import median
 import sys
 
 EVENT_NAMES = {"bahrain": "巴林大奖赛", "silverstone": "英国大奖赛", "monza": "意大利大奖赛",
-               "monza-2026": "意大利大奖赛"}
+               "brazil": "圣保罗大奖赛", "monza-2026": "意大利大奖赛"}
 DRY = ("HARD", "MEDIUM", "SOFT")
 BINS = 180
 
@@ -321,6 +321,16 @@ if __name__ == "__main__":
     events = [build(slug, json.loads(path.read_text())) for slug, path in files.items() if path]
     if not events:
         raise SystemExit("No complete OpenF1 downloads")
+    # Keep events already in the snapshot whose downloads are not in these caches,
+    # so one new race can be added without re-fetching every other event's telemetry.
+    built = {event["id"] for event in events}
+    if output.exists():
+        kept = [event for event in json.loads(output.read_text()) if event["id"] not in built]
+        if kept:
+            print("kept from existing snapshot:", ", ".join(event["id"] for event in kept))
+        events += kept
+    order = list(EVENT_NAMES)
+    events.sort(key=lambda event: order.index(event["id"]) if event["id"] in order else len(order))
     for event in events:
         print(event["name"], event["sourceLaps"], len(event["drivers"]),
               {d: len(rows) for d, rows in event["telemetry"]["laps"].items()},

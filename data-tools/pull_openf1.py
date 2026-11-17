@@ -12,6 +12,7 @@ EVENTS = [
     ("bahrain", 2024, "Sakhir", [63, 44, 1, 16]),
     ("silverstone", 2024, "Silverstone", [44, 63, 1, 4]),
     ("monza", 2025, "Monza", [63, 12, 1, 4]),
+    ("brazil", 2024, "Interlagos", [1, 4, 63, 16]),
 ]
 
 def fetch(cache, endpoint, filters, time_window=None):
