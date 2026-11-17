@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="用历届大奖赛的圈速、分段、遥测和轮胎数据比较 F1 车手">
+  <title>Raceopic · F1 数据分析</title>
+  <link rel="stylesheet" href="style.css?v=replay">
+  <script src="replay.js" defer></script>
+  <script src="app.js?v=replay" defer></script>
+</head>
+<body>
+  <aside>
+    <a class="brand" href="#" aria-label="返回顶部">R<span>／</span></a>
+    <span class="rail-text">Raceopic</span>
+    <a class="rail-icon" href="season.html" title="2026 赛季积分榜">◈</a>
+    <a class="rail-icon active" href="#track" title="赛道与遥测">⌁</a>
+    <a class="rail-icon" href="#overview" title="正赛圈速">▥</a>
+    <a class="rail-icon" href="#strategy" title="策略模拟">↗</a>
+    <a class="rail-icon" href="#method" title="分析方法">ⓘ</a>
+  </aside>
+  <div class="shell">
+    <header>
+      <a href="#" class="wordmark">Race<span>opic</span><small>赛车数据实验室</small></a>
+      <div class="header-right"><span class="status-dot"></span> OpenF1 历史数据</div>
+    </header>
+    <main>
+      <div class="hero">
+        <div><h1>每一圈，<span>都有答案。</span></h1><p>对照真实圈速、遥测和轮胎记录，找出两位车手的时间差来自哪里。</p></div>
+        <div class="hero-actions"><a href="season.html">2026 积分榜与数据 ↗</a><button id="export" disabled>↓ 导出正赛 CSV</button></div>
+      </div>
+      <div id="loading" role="status" class="panel">正在读取历史赛事数据…</div>
+      <div id="dashboard" hidden>
+        <div class="session race-bar">
+          <label><span class="label">大奖赛</span><select id="race" aria-label="大奖赛"></select></label>
+          <label class="driver driver-primary"><span aria-hidden="true">●</span><span class="label">主车手</span><select id="driverA" aria-label="主车手"></select></label>
+          <label class="driver driver-secondary"><span aria-hidden="true">●</span><span class="label">对比车手</span><select id="driverB" aria-label="对比车手"></select></label>
+          <span class="badge" id="coverage"></span>
+        </div>
+
+        <section class="panel track-panel" id="track">
+          <div class="panel-head">
+            <div><div class="eyebrow">排位赛遥测</div><h2>赛道优势与行车线</h2></div>
+            <div class="mode-switch" aria-label="赛道图模式">
+              <button id="dominance" aria-pressed="true">分段优势</button>
+              <button id="lines" aria-pressed="false">行车线</button>
+              <button id="replayMode" aria-pressed="false">双车回放</button>
+            </div>
+          </div>
+          <div class="lap-controls">
+            <label class="driver driver-primary"><span id="telemetryA"></span><select id="qualiA" aria-label="主车手排位赛圈"></select></label>
+            <label class="driver driver-secondary"><span id="telemetryB"></span><select id="qualiB" aria-label="对比车手排位赛圈"></select></label>
+          </div>
+          <div id="trackUnavailable" class="empty-state" hidden>这组车手缺少能完整对齐的排位赛遥测。请选择另一位车手。</div>
+          <div id="trackContent" class="track-grid">
+            <div class="map-box">
+              <div class="map-label"><strong id="circuit"></strong><span id="focusCaption"></span></div>
+              <div id="trackMap" class="track-map"></div>
+              <div id="mapHint" class="map-hint"></div>
+              <div id="replayControls" class="replay-controls" hidden>
+                <div class="replay-buttons">
+                  <button type="button" id="replayPlay">▶ 播放</button>
+                  <button type="button" id="replayReset">↺ 重置</button>
+                  <select id="replayRate" aria-label="回放速度">
+                    <option value="0.25">0.25×</option><option value="0.5">0.5×</option>
+                    <option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option>
+                  </select>
+                </div>
+                <label class="scrubber"><span>单圈计时 <span id="replayClock"></span></span><input id="replayTime" type="range" min="0" step="1" aria-label="回放时间"></label>
+              </div>
+            </div>
+            <div class="telemetry-side">
+              <div id="sectorCards" class="sector-cards"></div>
+              <button id="wholeTrack" class="text-link" hidden>↺ 查看整条赛道</button>
+              <div id="positionTelemetry">
+                <div class="telemetry-head"><h3>同位置速度对比</h3><span class="label">km/h</span></div>
+                <div id="speedChart" class="speed-chart"></div>
+                <label class="scrubber"><span>沿赛道查看 <output id="progress"></output></span><input id="distance" type="range" min="0" max="180" value="0" aria-label="赛道位置"></label>
+                <div id="readout" class="readout"></div>
+              </div>
+              <div id="replayTelemetry" hidden>
+                <div class="telemetry-head"><h3>同时刻遥测</h3></div>
+                <div id="replayReadout" class="readout"></div>
+                <label class="bend-picker">弯区对比 <select id="replayBend" aria-label="回放弯区"></select></label>
+                <div id="bendMetrics"></div>
+              </div>
+            </div>
+          </div>
+          <p id="telemetryNote" class="panel-note"></p>
+        </section>
+
+        <section id="overview" aria-label="正赛节奏">
+          <div class="metrics">
+            <article><span class="label">最快圈</span><strong id="fastest"></strong><small id="fastestDriver"></small></article>
+            <article><span class="label">配对圈速差中位数</span><strong id="gap"></strong><small id="gapDriver"></small></article>
+            <article><span class="label">圈速差中间 50%</span><strong id="spread"></strong><small>主车手 − 对比车手</small></article>
+            <article><span class="label">配对样本</span><strong id="samples"></strong><small id="sampleNote"></small></article>
+          </div>
+          <section class="panel chart-panel">
+            <div class="panel-head"><div><div class="eyebrow">正赛计时</div><h2>逐圈节奏</h2></div><span class="unit">圈速 / 秒</span></div>
+            <div class="chart-controls">
+              <span class="driver-primary" id="paceA"></span><span class="driver-secondary" id="paceB"></span>
+              <label class="check"><input id="clean" type="checkbox" checked> 排除异常圈</label>
+              <label class="check"><input id="sameTyre" type="checkbox"> 仅比较相同配方</label>
+            </div>
+            <div id="chart" class="chart"></div>
+            <div id="tooltip" class="tooltip">在图上移动或轻触，查看单圈数据。</div>
+          </section>
+        </section>
+
+        <div class="bottom-grid">
+          <section class="panel">
+            <div class="panel-head"><div><div class="eyebrow">正赛轮胎记录</div><h2>轮胎使用时间线</h2></div></div>
+            <div id="stints"></div>
+            <p class="panel-note" id="stintNote"></p>
+          </section>
+          <section class="panel strategy" id="strategy">
+            <div class="panel-head"><div><div class="eyebrow">进站情景</div><h2>如果换一圈进站？</h2></div></div>
+            <div id="strategyUnavailable" class="empty-state" hidden></div>
+            <div id="strategyControls">
+              <div class="slider-title"><label>实际停站 <select id="stop"></select></label><strong>LAP <output id="pitLabel"></output></strong></div>
+              <input id="pit" aria-label="模拟进站圈" type="range">
+              <div class="range-labels"><span>较早进站</span><span>较晚进站</span></div>
+              <div class="sim-result"><div><span class="label">相对实际策略的估算用时变化</span><strong id="simDelta"></strong></div><span id="simTag"></span></div>
+              <p class="panel-note" id="simDescription"></p>
+              <button id="reset" class="text-link">↺ 恢复实际进站圈</button>
+            </div>
+          </section>
+        </div>
+
+        <details id="method" class="method">
+          <summary>数据来源与分析口径 <span>＋</span></summary>
+          <p>历史圈速、分段、轮胎、进站、赛会消息和遥测来自 <a href="https://openf1.org/docs/">OpenF1</a>。站点内置数据快照，赛事样本数包含全场车手，页面可选车手为有重点遥测覆盖的子集。</p>
+          <p>逐圈差值以正赛同圈配对，默认为两人均有效的圈。异常圈包括发车、进出站、缺失计时和整场减速区间；局部黄旗、车流和天气差异仍可能影响结果。中间 50% 是第 25 至第 75 百分位数；相同配方筛选只作用于配对统计。</p>
+          <p>赛道优势取所选两圈的 S1–S3 计时差；分段显示位置按参考圈近似映射。行车线为 OpenF1 的公开定位采样轨迹，经过投影对齐与插值。样本存在位置和时间误差，不能用来判断厘米级走线或精确制动点。选择赛段可放大重叠的轨迹。</p>
+          <p>双车回放把各自的排位圈从 0 秒对齐，使用各自的采样时间插值重建位置。两圈可能在不同时间跑出。弯区根据参考轨迹的曲率自动选取，进出弯速度在对应窗口边界采样。</p>
+          <p>干地进站估算用全场有效样本拟合车手基准、比赛圈数趋势、配方差异和胎龄变化。保持轮胎顺序与进站次数，比较移动一次进站后的模型用时。进站损失按相同处理；模型未估计交通、暖胎或安全车收益。所示拟合误差为样本内单圈绝对残差中位数。雨战或缺少配方覆盖时暂停估算。</p>
+        </details>
+      </div>
+      <footer><span class="wordmark">Race<span>opic</span></span><span>独立赛车数据项目 · 非官方 F1 产品</span></footer>
+    </main>
+  </div>
+</body>
+</html>

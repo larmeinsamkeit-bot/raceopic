@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="2026 F1 车手积分榜、车队积分榜、赛历和逐站数据档案">
+  <title>2026 赛季 · Raceopic</title>
+  <link rel="stylesheet" href="style.css?v=season">
+  <link rel="stylesheet" href="season.css">
+  <script src="season.js" defer></script>
+</head>
+<body>
+  <header class="season-header">
+    <a href="index.html" class="wordmark">Race<span>opic</span></a>
+    <a href="index.html#track" class="back-link">↗ 圈速与遥测实验室</a>
+  </header>
+  <main class="season-main">
+    <div class="hero season-hero">
+      <div><div class="eyebrow">FORMULA 1 / 赛季数据</div><h1>2026 <span>赛季积分榜</span></h1>
+        <p>换一站，回看当轮结束后的车手与车队排名。</p></div>
+      <a href="#roundArchive" class="back-link">↓ 比赛数据档案</a>
+    </div>
+    <div id="seasonLoading" role="status" class="panel">正在读取已保存的赛季数据…</div>
+    <div id="seasonContent" hidden>
+      <section class="panel calendar-panel" aria-labelledby="calendarTitle">
+        <div class="season-panel-heading">
+          <div><div class="eyebrow">赛历</div><h2 id="calendarTitle"></h2></div>
+          <div class="calendar-controls">
+            <button id="previousRound" type="button" aria-label="上一站">←</button>
+            <label><span class="sr-only">选择分站</span><select id="roundSelect"></select></label>
+            <button id="nextRound" type="button" aria-label="下一站">→</button>
+          </div>
+        </div>
+        <div class="calendar-info"><span id="roundMeta"></span><span id="calendarNext"></span></div>
+        <progress id="calendarProgress" aria-label="赛季进度"></progress>
+        <div class="calendar-info refresh-row"><span id="lastUpdated"></span>
+          <button type="button" id="syncSeason" class="text-link">↻ 刷新赛历与积分</button>
+        </div>
+        <details class="session-schedule"><summary>本轮赛程 <span>当地设备时间</span></summary><div id="sessionSchedule"></div></details>
+      </section>
+
+      <div id="boardNotice" class="board-notice"></div>
+      <div class="season-board-grid">
+        <section class="panel standing-panel" aria-labelledby="driverTitle">
+          <div class="season-panel-heading"><div><div class="eyebrow">DRIVERS' CHAMPIONSHIP</div><h2 id="driverTitle">车手积分榜</h2></div><span id="driverCount" class="badge"></span></div>
+          <div class="standings-scroll"><table class="sports-table" aria-label="车手积分榜">
+            <thead><tr><th scope="col">排名</th><th scope="col">车手</th><th scope="col">本轮</th><th scope="col">积分</th></tr></thead><tbody id="driverBoard"></tbody>
+          </table></div>
+        </section>
+        <section class="panel standing-panel" aria-labelledby="teamTitle">
+          <div class="season-panel-heading"><div><div class="eyebrow">CONSTRUCTORS' CHAMPIONSHIP</div><h2 id="teamTitle">车队积分榜</h2></div><span id="teamCount" class="badge"></span></div>
+          <div class="standings-scroll"><table class="sports-table" aria-label="车队积分榜">
+            <thead><tr><th scope="col">排名</th><th scope="col">车队</th><th scope="col">本轮</th><th scope="col">积分</th></tr></thead><tbody id="teamBoard"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <section class="panel result-panel" aria-labelledby="resultTitle">
+        <div class="season-panel-heading">
+          <div><div class="eyebrow">分站分类成绩</div><h2 id="resultTitle">本轮成绩</h2></div>
+          <div class="mode-switch" id="resultModes" aria-label="分类成绩类型"></div>
+        </div>
+        <p id="resultEmpty" class="panel-note" hidden></p>
+        <div class="standings-scroll" id="resultScroll" hidden><table class="sports-table result-table" aria-label="本轮分类成绩"><thead id="resultHead"></thead><tbody id="resultRows"></tbody></table></div>
+      </section>
+
+      <section class="panel result-panel" id="roundArchive" aria-labelledby="archiveTitle">
+        <div class="season-panel-heading"><div><div class="eyebrow">OPENF1 DATA ARCHIVE</div><h2 id="archiveTitle">正赛数据档案</h2></div>
+          <a id="archiveDownload" class="back-link" download hidden>↓ 下载整站 JSON</a>
+        </div>
+        <p id="archiveStatus" class="panel-note"></p>
+        <div id="archiveContent" hidden>
+          <div id="archiveModes" class="archive-modes" aria-label="数据类别"></div>
+          <label id="archiveDriverFilter" class="archive-driver">按车手查看 <select id="archiveDriver"></select></label>
+          <div id="archivePreview" class="standings-scroll"></div>
+        </div>
+      </section>
+      <p class="season-sources">赛历、分类成绩与积分来自 <a href="https://github.com/jolpica/jolpica-f1/blob/main/docs/README.md">Jolpica F1</a>，正赛数据档案来自 <a href="https://openf1.org/docs/">OpenF1</a>。积分按正赛结束后的轮次更新，包含已计入的冲刺赛积分。可对照 <a href="https://www.formula1.com/en/results/2026/drivers">F1 官方车手榜</a> 与 <a href="https://www.formula1.com/en/results/2026/team">车队榜</a>。</p>
+      <button id="downloadSeason" class="text-link" type="button">↓ 下载赛季赛历、积分与成绩 JSON</button>
+    </div>
+    <footer><span class="wordmark">Race<span>opic</span></span><span>独立赛车数据项目 · 非官方 F1 产品</span></footer>
+  </main>
+</body>
+</html>

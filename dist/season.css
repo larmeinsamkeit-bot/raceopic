@@ -1,0 +1,98 @@
+.season-header { padding-inline: max(24px, calc((100% - 1320px) / 2)); }
+.season-main { max-width: 1400px; padding: 28px 25px 0; }
+.season-hero { gap: 20px; }
+.season-hero .eyebrow { margin-bottom: 7px; }
+.season-hero h1 { margin-bottom: 9px; }
+.back-link { color: var(--petronas); font-size: 12px; white-space: nowrap; }
+.back-link:hover, .season-sources a:hover { text-decoration: underline; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.season-panel-heading, .calendar-controls, .calendar-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.calendar-controls button {
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #0d1516;
+  color: var(--text);
+}
+.calendar-controls button:disabled { opacity: .4; cursor: default; }
+.calendar-controls select {
+  max-width: min(48vw, 270px);
+  padding-left: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #0d1516;
+}
+.calendar-info { color: var(--muted); font-size: 12px; flex-wrap: wrap; margin-top: 14px; }
+#calendarNext { color: var(--petronas); }
+#calendarProgress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  accent-color: var(--petronas);
+  margin-top: 14px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+#calendarProgress::-webkit-progress-bar { background: #2b3638; }
+#calendarProgress::-webkit-progress-value { background: var(--petronas); }
+.refresh-row .text-link { margin: 0; }
+.session-schedule { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 13px; font-size: 12px; }
+.session-schedule summary { cursor: pointer; }
+.session-schedule summary span { color: var(--muted); margin-left: 8px; }
+#sessionSchedule { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; margin-top: 12px; }
+#sessionSchedule div { display: grid; gap: 5px; padding: 9px; border: 1px solid var(--line); border-radius: 4px; }
+#sessionSchedule span { color: var(--muted); }
+.board-notice { margin: 16px 0 10px; color: var(--silver); font-size: 12px; }
+.season-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.standings-scroll { overflow: auto; }
+.standing-panel .standings-scroll { max-height: 490px; margin-top: 13px; }
+.sports-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 12px; }
+.sports-table th,.sports-table td { padding: 9px 6px; border-bottom: 1px solid var(--line); }
+.sports-table thead th { position: sticky; top: 0; z-index: 1; background: var(--panel); color: var(--muted); font-size: 11px; white-space: nowrap; }
+.sports-table tbody th { font-weight: 500; color: var(--silver); font-variant-numeric: tabular-nums; }
+.sports-table td small { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+.sports-table .numeric { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sports-table tbody .points { font-weight: 750; }
+.sports-table .gain { color: var(--petronas); }
+.sports-table .loss { color: #ff9e9e; }
+.sports-table .leader > * { background: var(--teal-surface); }
+.result-panel { margin-top: 16px; }
+.result-table { min-width: 465px; margin-top: 10px; }
+.archive-modes { display: flex; flex-wrap: wrap; gap: 7px; margin: 13px 0; }
+.archive-modes button {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 7px 9px;
+  background: #101719;
+  color: var(--silver);
+  font-size: 12px;
+}
+.archive-modes button[aria-pressed="true"] { border-color: var(--petronas); color: var(--petronas); background: var(--teal-surface); }
+.archive-modes button small { color: var(--muted); margin-left: 5px; }
+.archive-driver { font-size: 12px; color: var(--muted); }
+.archive-table { min-width: 400px; margin-top: 8px; }
+.archive-table caption { text-align: left; color: var(--muted); font-size: 11px; margin-bottom: 5px; }
+.season-sources { font-size: 11px; margin-top: 17px; }
+.season-sources a { color: var(--petronas); }
+
+@media (max-width: 750px) {
+  .season-board-grid { grid-template-columns: 1fr; }
+  .standing-panel .standings-scroll { max-height: 390px; }
+  .calendar-panel .season-panel-heading { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+  .season-main { padding: 14px 14px 0; }
+  .season-header { padding: 0 14px; }
+  .season-main .panel { padding: 14px; }
+  .season-panel-heading { flex-wrap: wrap; }
+  .calendar-controls select { max-width: 67vw; }
+}
