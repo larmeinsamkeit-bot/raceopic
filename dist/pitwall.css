@@ -523,3 +523,23 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .pw .event-status:empty { display: none; }
 .archive-actions { margin-left: auto; display: flex; gap: 20px; align-self: center; }
 .archive-actions .text-link { padding: 8px 0; }
+
+/* =================== map zoom =================== */
+.zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 4px; }
+.zoom-bar button {
+  min-width: 40px; min-height: 40px;
+  border: 1px solid var(--rule-strong); border-radius: 999px;
+  background: var(--bg); color: var(--text);
+  font: 500 18px/1 var(--sans); cursor: pointer;
+}
+.zoom-bar button.zoom-text { padding: 0 16px; font-size: 14px; }
+.zoom-bar button:hover:not(:disabled) { border-color: var(--petronas); color: var(--petronas); }
+.zoom-bar button:disabled { opacity: .35; cursor: default; }
+#zoomLevel { min-width: 48px; text-align: center; font: 600 18px var(--num); color: var(--petronas); }
+.zoom-follow { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; font-size: 14px; color: var(--muted); }
+.zoom-follow[hidden] { display: none; }
+.zoom-follow select { min-height: 40px; padding: 0 10px; border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--bg); color: var(--text); }
+.pw .track-map { overflow: hidden; }
+.pw .track-map svg { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.pw .track-map svg.zoomed { touch-action: none; cursor: grab; }
+.pw .track-map svg.zoomed:active { cursor: grabbing; }

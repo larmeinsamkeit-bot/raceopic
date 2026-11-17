@@ -174,7 +174,7 @@ function renderTrack() {
   }).join('');
   const pins = marks.slice(0, 3).map((index, i) => {
     const [x, y] = reference[index];
-    return `<circle class="track-gate" cx="${x}" cy="${y}" r="8"/><text class="track-gate-label" x="${x + 14}" y="${y - 14}">${i ? 'S' + (i + 1) : '起终点'}</text>`;
+    return `<g transform="translate(${x} ${y})"><g class="glyph" data-s="1"><circle class="track-gate" r="8"/><text class="track-gate-label" x="14" y="-14">${i ? 'S' + (i + 1) : '起终点'}</text></g></g>`;
   }).join('');
   const glyphScale = Math.max(view[2], view[3]) / 900;
   const overlay = replaying ? replayMap([first, second], drivers, reference, min, max, glyphScale) :
@@ -197,11 +197,12 @@ function renderTrack() {
       focusReplayBend(state.bend === bend ? null : bend);
     };
   });
-  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。点击编号可放大弯区。' : state.mode === 'dominance'
-    ? '颜色显示该段用时更短的车手。点击赛段可放大。'
+  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。点击编号放大弯区；双指或 Ctrl/⌘ + 滚轮缩放，放大后可拖动。' : state.mode === 'dominance'
+    ? '颜色显示该段用时更短的车手。点击赛段放大；双指或 Ctrl/⌘ + 滚轮缩放。'
     : '青绿实线与银灰虚线为定位采样轨迹。用赛段卡片放大。';
   $('telemetryNote').textContent =
     `${state.event.telemetrySource ?? 'OpenF1'} · ${drivers[0].code} / ${drivers[1].code} 定位记录 ${first.positionSamples} / ${second.positionSamples}，车载读取记录 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
+  zoomAttach(view, drivers, replaying);
   if (replaying) {
     setupReplay([first, second], drivers, min, max);
     return;
@@ -501,6 +502,7 @@ async function init() {
     $('reset').onclick = selectStop;
     $('export').onclick = exportCsv;
     bindReplay();
+    bindZoom();
     await setEvent();
     $('loading').hidden = true;
     $('dashboard').hidden = false;
