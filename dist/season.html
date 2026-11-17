@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Noto+Sans+SC:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="pitwall.css">
-  <script src="season.js" defer></script>
+  <script src="season.js?v=season-lab" defer></script>
   <script src="predict.js" defer></script>
 </head>
 <body class="pw">
@@ -113,7 +113,7 @@
         <header class="chapter-head">
           <span class="chapter-mark">D</span>
           <div class="chapter-title"><h2 id="archiveTitle">正赛数据档案</h2><p>OpenF1 逐圈计时、轮胎、进站、天气与赛会消息</p></div>
-          <a id="archiveDownload" class="text-link" download hidden>下载整站 JSON</a>
+          <div class="archive-actions"><a id="archiveLab" class="text-link" hidden>分析这一站 ↗</a><a id="archiveDownload" class="text-link" download hidden>下载整站 JSON</a></div>
         </header>
         <p id="archiveStatus" class="note"></p>
         <div id="archiveContent" hidden>

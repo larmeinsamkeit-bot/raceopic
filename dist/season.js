@@ -14,7 +14,7 @@ const classes = {results: 'Results', qualifying: 'QualifyingResults', sprint: 'S
 const archiveLabels = {laps: '逐圈计时', stints: '轮胎', pit: '进站', weather: '天气', race_control: '赛会消息'};
 const time = new Intl.DateTimeFormat('zh-CN', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
 const num = new Intl.NumberFormat('zh-CN', {maximumFractionDigits: 2});
-const state = {data: null, round: null, result: 'results', archiveType: 'laps', archiveIndex: [], archiveToken: 0, archives: new Map(), checked: 0};
+const state = {data: null, round: null, result: 'results', archiveType: 'laps', archiveIndex: [], labRounds: new Set(), archiveToken: 0, archives: new Map(), checked: 0};
 
 function safe(value) {
   return String(value ?? '—').replace(/[&<>"']/g, char =>
@@ -130,6 +130,8 @@ async function renderArchive(race) {
   const token = ++state.archiveToken;
   const entry = state.archiveIndex.find(row => Math.abs(Date.parse(race.date) - Date.parse(row.date)) <= 86400000);
   $('archiveDownload').hidden = $('archiveContent').hidden = true;
+  $('archiveLab').hidden = !state.labRounds.has(race.round);
+  $('archiveLab').href = `index.html?round=${race.round}#track`;
   $('archiveTitle').textContent = `${race.name} · 正赛档案`;
   const settled = Boolean(state.data.snapshots[race.round]);
   $('archiveStatus').textContent = entry || settled ? '正在读取本站档案…' : '本站正赛详细数据待发布。';
@@ -318,9 +320,13 @@ function navigate(step) {
 
 async function start() {
   try {
-    const [data, archive] = await Promise.all([json('season-2026.json'), json('archive-2026.json').catch(() => [])]);
+    const [data, archive, lab] = await Promise.all([
+      json('season-2026.json'), json('archive-2026.json').catch(() => []),
+      json('lab-2026/index.json?v=season-lab').catch(() => []),
+    ]);
     state.data = data;
     state.archiveIndex = archive;
+    state.labRounds = new Set(lab.map(entry => entry.round));
     try {
       const saved = JSON.parse(localStorage.getItem(CACHE));
       if (saved?.data?.year === 2026 && Date.parse(saved.data.updated) >= Date.parse(data.updated)) {

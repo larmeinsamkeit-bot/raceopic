@@ -9,7 +9,15 @@ const tyres = {
   INTERMEDIATE: ['I', '半雨胎'], WET: ['W', '全雨胎'],
 };
 const state = {event: null, mode: 'dominance', sector: null, bend: null, bends: [], at: 0, stops: []};
-let events;
+const events = new Map();
+const seasonLab = new Map();
+let eventRequest = 0;
+
+async function readEventData(url) {
+  const response = await fetch(url, {signal: AbortSignal.timeout(15000)});
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+  return response.json();
+}
 
 function lapTime(seconds) {
   if (seconds == null) return '—';
@@ -28,14 +36,55 @@ function pair() {
   return ['driverA', 'driverB'].map(id => state.event.drivers.find(d => d.id === Number($(id).value)));
 }
 
-function setEvent() {
-  state.event = events.find(event => event.id === $('race').value);
+function optionGroup(label, options) {
+  const group = document.createElement('optgroup');
+  group.label = label;
+  group.append(...options);
+  return group;
+}
+
+async function setEvent() {
+  const request = ++eventRequest;
+  const id = $('race').value;
+  stopReplay();
+  $('eventStatus').textContent = '正在载入分站…';
+  for (const field of ['driverA', 'driverB', 'export']) $(field).disabled = true;
+  try {
+    if (!events.has(id)) {
+      const round = seasonLab.get(id).round;
+      const event = await readEventData(`lab-2026/r${String(round).padStart(2, '0')}.json?v=season-lab`);
+      if (event.id !== id) throw new Error('Race data does not match the requested event');
+      events.set(id, event);
+    }
+    if (request !== eventRequest) return;
+    state.event = events.get(id);
+    renderEvent();
+    $('eventStatus').textContent = '';
+  } catch (error) {
+    if (request !== eventRequest) return;
+    $('eventStatus').textContent = '该站数据加载失败。请尝试重新选择或刷新。';
+    if (!state.event) throw error;
+    $('race').value = state.event.id;
+  } finally {
+    if (request === eventRequest && state.event) {
+      for (const field of ['driverA', 'driverB', 'export']) $(field).disabled = false;
+    }
+  }
+}
+
+function renderEvent() {
   state.bends = findReplayBends(state.event.telemetry.reference);
+  const hasTelemetry = driver => Boolean(state.event.telemetry.laps[driver.id]?.length);
+  const trackDrivers = state.event.drivers.filter(hasTelemetry);
+  const paceDrivers = state.event.drivers.filter(driver => !hasTelemetry(driver));
+  const driverOption = d => option(d.id, `${d.code} · ${d.surname}${d.laps.length ? '' : '（仅排位）'}`);
   for (const [index, id] of ['driverA', 'driverB'].entries()) {
-    $(id).replaceChildren(...state.event.drivers.map(d => option(d.id, `${d.code} · ${d.surname}`)));
+    const groups = [optionGroup('有排位遥测', trackDrivers.map(driverOption))];
+    if (paceDrivers.length) groups.push(optionGroup('仅正赛数据', paceDrivers.map(driverOption)));
+    $(id).replaceChildren(...groups);
     $(id).selectedIndex = index;
   }
-  $('coverage').textContent = `${state.event.totalLaps} 圈 · 全场 ${state.event.sourceLaps.toLocaleString()} 条记录`;
+  $('coverage').textContent = `正赛 ${state.event.sourceLaps.toLocaleString()} 条 · 遥测 ${trackDrivers.length}/${state.event.drivers.length} 位`;
   $('circuit').textContent = state.event.circuit;
   changePair();
 }
@@ -152,7 +201,7 @@ function renderTrack() {
     ? '颜色显示该段用时更短的车手。点击赛段可放大。'
     : '青绿实线与银灰虚线为定位采样轨迹。用赛段卡片放大。';
   $('telemetryNote').textContent =
-    `${drivers[0].code} / ${drivers[1].code} 定位样本 ${first.positionSamples} / ${second.positionSamples}，车载样本 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
+    `${state.event.telemetrySource ?? 'OpenF1'} · ${drivers[0].code} / ${drivers[1].code} 定位记录 ${first.positionSamples} / ${second.positionSamples}，车载读取记录 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
   if (replaying) {
     setupReplay([first, second], drivers, min, max);
     return;
@@ -411,10 +460,20 @@ function exportCsv() {
 
 async function init() {
   try {
-    const response = await fetch('events.json?v=replay');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    events = (await response.json()).sort((a, b) => b.raceKey - a.raceKey);
-    $('race').replaceChildren(...events.map(event => option(event.id, `${event.year} ${event.name}`)));
+    const [season, legacy] = await Promise.all([
+      readEventData('lab-2026/index.json?v=season-lab'), readEventData('events.json?v=replay'),
+    ]);
+    const current = season.sort((a, b) => b.round - a.round);
+    current.forEach(entry => seasonLab.set(entry.id, entry));
+    const past = legacy.filter(event => event.year < 2026).sort((a, b) => b.raceKey - a.raceKey);
+    past.forEach(event => events.set(event.id, event));
+    $('race').replaceChildren(
+      optionGroup('2026 赛季 · 已完赛', current.map(event => option(event.id, `R${String(event.round).padStart(2, '0')} · ${event.name}`))),
+      optionGroup('往季精选', past.map(event => option(event.id, `${event.year} ${event.name}`))),
+    );
+    const requestedRound = Number(new URLSearchParams(location.search).get('round'));
+    const requested = current.find(event => event.round === requestedRound);
+    if (requested) $('race').value = requested.id;
     $('race').onchange = setEvent;
     for (const id of ['driverA', 'driverB']) {
       $(id).onchange = () => {
@@ -442,7 +501,7 @@ async function init() {
     $('reset').onclick = selectStop;
     $('export').onclick = exportCsv;
     bindReplay();
-    setEvent();
+    await setEvent();
     $('loading').hidden = true;
     $('dashboard').hidden = false;
     $('export').disabled = false;
