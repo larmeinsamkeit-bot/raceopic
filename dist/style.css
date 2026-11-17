@@ -363,3 +363,6 @@ aside {
   white-space: nowrap;
   font-size: 12px;
 }
+
+.event-status { margin: -9px 0 13px; }
+.event-status:empty { display: none; }

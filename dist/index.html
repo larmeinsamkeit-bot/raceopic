@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="用历届大奖赛的圈速、分段、遥测和轮胎数据比较 F1 车手">
   <title>Raceopic · F1 数据分析</title>
-  <link rel="stylesheet" href="style.css?v=replay">
+  <link rel="stylesheet" href="style.css?v=season-lab">
   <script src="replay.js" defer></script>
-  <script src="app.js?v=replay" defer></script>
+  <script src="app.js?v=season-lab" defer></script>
 </head>
 <body>
   <aside>
@@ -22,7 +22,7 @@
   <div class="shell">
     <header>
       <a href="#" class="wordmark">Race<span>opic</span><small>赛车数据实验室</small></a>
-      <div class="header-right"><span class="status-dot"></span> OpenF1 历史数据</div>
+      <div class="header-right"><span class="status-dot"></span> 历史赛事数据</div>
     </header>
     <main>
       <div class="hero">
@@ -37,6 +37,7 @@
           <label class="driver driver-secondary"><span aria-hidden="true">●</span><span class="label">对比车手</span><select id="driverB" aria-label="对比车手"></select></label>
           <span class="badge" id="coverage"></span>
         </div>
+        <p id="eventStatus" class="panel-note event-status" role="status"></p>
 
         <section class="panel track-panel" id="track">
           <div class="panel-head">
@@ -51,7 +52,7 @@
             <label class="driver driver-primary"><span id="telemetryA"></span><select id="qualiA" aria-label="主车手排位赛圈"></select></label>
             <label class="driver driver-secondary"><span id="telemetryB"></span><select id="qualiB" aria-label="对比车手排位赛圈"></select></label>
           </div>
-          <div id="trackUnavailable" class="empty-state" hidden>这组车手缺少能完整对齐的排位赛遥测。请选择另一位车手。</div>
+          <div id="trackUnavailable" class="empty-state" hidden>这组车手缺少可对齐的排位遥测。要查看排位轨迹或回放，请从「有排位遥测」分组选择两位车手。</div>
           <div id="trackContent" class="track-grid">
             <div class="map-box">
               <div class="map-label"><strong id="circuit"></strong><span id="focusCaption"></span></div>
@@ -130,9 +131,9 @@
 
         <details id="method" class="method">
           <summary>数据来源与分析口径 <span>＋</span></summary>
-          <p>历史圈速、分段、轮胎、进站、赛会消息和遥测来自 <a href="https://openf1.org/docs/">OpenF1</a>。站点内置数据快照，赛事样本数包含全场车手，页面可选车手为有重点遥测覆盖的子集。</p>
+          <p>正赛圈速、分段、轮胎、进站和赛会消息来自 <a href="https://openf1.org/docs/">OpenF1</a>；2026 排位遥测来自 <a href="https://f1archive.org/docs">F1Archive</a>，往季精选的遥测来自 OpenF1。正赛可选有逐圈记录的车手；排位回放可选有完整轨迹及车载数据的车手。</p>
           <p>逐圈差值以正赛同圈配对，默认为两人均有效的圈。异常圈包括发车、进出站、缺失计时和整场减速区间；局部黄旗、车流和天气差异仍可能影响结果。中间 50% 是第 25 至第 75 百分位数；相同配方筛选只作用于配对统计。</p>
-          <p>赛道优势取所选两圈的 S1–S3 计时差；分段显示位置按参考圈近似映射。行车线为 OpenF1 的公开定位采样轨迹，经过投影对齐与插值。样本存在位置和时间误差，不能用来判断厘米级走线或精确制动点。选择赛段可放大重叠的轨迹。</p>
+          <p>赛道优势取所选两圈的 S1–S3 计时差；分段显示位置按参考圈近似映射。行车线由公开定位样本经过投影对齐与插值得出。样本存在位置和时间误差，不能用来判断厘米级走线或精确制动点。选择赛段可放大重叠的轨迹。</p>
           <p>双车回放把各自的排位圈从 0 秒对齐，使用各自的采样时间插值重建位置。两圈可能在不同时间跑出。弯区根据参考轨迹的曲率自动选取，进出弯速度在对应窗口边界采样。</p>
           <p>干地进站估算用全场有效样本拟合车手基准、比赛圈数趋势、配方差异和胎龄变化。保持轮胎顺序与进站次数，比较移动一次进站后的模型用时。进站损失按相同处理；模型未估计交通、暖胎或安全车收益。所示拟合误差为样本内单圈绝对残差中位数。雨战或缺少配方覆盖时暂停估算。</p>
         </details>

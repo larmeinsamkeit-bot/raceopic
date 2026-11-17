@@ -223,10 +223,27 @@ def align(points, center, distances):
 def telemetry_data(source):
     raw = {d: [r for item in entries if (r := raw_capture(item)) is not None]
            for d, entries in source["telemetry"].items()}
+    return build_telemetry(raw)
+
+
+def build_telemetry(raw, *, consensus=False):
     available = [r for entries in raw.values() for r in entries]
     if not available:
         raise ValueError("No complete telemetry available")
-    reference_lap, center, _ = min(available, key=lambda r: r[0]["lap_duration"])
+    if consensus:
+        def reference_score(capture):
+            lap, points, _ = capture
+            radius = .025 * distance_along(points)[-1]
+            # Some timing clocks place the nominal finish away from the rest of the grid.
+            # Only combine traces that agree on the start and finish locations.
+            def nearby(other):
+                return all(hypot(points[i][1] - other[i][1], points[i][2] - other[i][2]) <= radius
+                           for i in (0, -1))
+            support = sum(any(nearby(other) for _, other, _ in entries) for entries in raw.values())
+            return -support, lap["lap_duration"]
+        reference_lap, center, _ = min(available, key=reference_score)
+    else:
+        reference_lap, center, _ = min(available, key=lambda r: r[0]["lap_duration"])
     cumulative = distance_along(center)
     if not cumulative[-1]:
         raise ValueError("Invalid reference position trace")
@@ -276,22 +293,24 @@ def telemetry_data(source):
         raise ValueError("Need at least two aligned drivers")
     return {"reference": reference, "cuts": cuts, "laps": result}
 
-def build(slug, source):
+def build(slug, source, *, name=None, telemetry=None):
     laps, stints, stops = race_rows(source)
     roster = {r["driver_number"]: r for r in source["drivers"]}
+    telemetry = telemetry if telemetry is not None else telemetry_data(source)
     drivers = [{
         "id": d, "code": roster[d]["name_acronym"], "name": roster[d]["full_name"],
         "surname": roster[d]["last_name"], "team": roster[d]["team_name"],
         "teamColour": roster[d].get("team_colour"), "laps": laps[d], "stints": stints[d], "pit": stops[d],
-    } for d in source["drivers_selected"] if d in roster and laps[d]]
+    } for d in source["drivers_selected"] if d in roster and (laps[d] or str(d) in telemetry["laps"])]
     wet = any(s["compound"] in ("INTERMEDIATE", "WET") for entries in stints.values() for s in entries)
     return {
-        "id": slug, "wet": wet, "name": EVENT_NAMES[slug], "year": source["race"]["year"],
+        "id": slug, "wet": wet, "name": name or EVENT_NAMES[slug], "year": source["race"]["year"],
         "circuit": source["race"]["circuit_short_name"],
         "raceKey": source["race"]["session_key"], "qualiKey": source["quali"]["session_key"],
         "totalLaps": max(row["lap"] for rows in laps.values() for row in rows),
         "sourceLaps": sum(len(rows) for rows in laps.values()),
-        "drivers": drivers, "telemetry": telemetry_data(source), "paceModel": None if wet else fit_pace(laps),
+        "drivers": drivers, "telemetry": telemetry,
+        "paceModel": None if wet else fit_pace(laps),
     }
 
 if __name__ == "__main__":

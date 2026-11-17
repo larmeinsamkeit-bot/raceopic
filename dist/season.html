@@ -7,7 +7,7 @@
   <title>2026 赛季 · Raceopic</title>
   <link rel="stylesheet" href="style.css?v=season">
   <link rel="stylesheet" href="season.css">
-  <script src="season.js" defer></script>
+  <script src="season.js?v=season-lab" defer></script>
 </head>
 <body>
   <header class="season-header">
@@ -66,7 +66,8 @@
 
       <section class="panel result-panel" id="roundArchive" aria-labelledby="archiveTitle">
         <div class="season-panel-heading"><div><div class="eyebrow">OPENF1 DATA ARCHIVE</div><h2 id="archiveTitle">正赛数据档案</h2></div>
-          <a id="archiveDownload" class="back-link" download hidden>↓ 下载整站 JSON</a>
+          <div class="hero-actions archive-actions"><a id="archiveLab" class="back-link" hidden>↗ 分析这一站</a>
+            <a id="archiveDownload" class="back-link" download hidden>↓ 下载整站 JSON</a></div>
         </div>
         <p id="archiveStatus" class="panel-note"></p>
         <div id="archiveContent" hidden>
