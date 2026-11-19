@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from build_dataset import distance_along, interp, neutral_periods, solve  # noqa: E402
 from build_season_lab import NS, group_by_window, timed  # noqa: E402
 import predict_strategy as P  # noqa: E402
+from build_teammates import round_gaps  # noqa: E402
 
 
 def message(time, text, flag=None, scope=None):
@@ -143,6 +144,34 @@ class Forecast(unittest.TestCase):
         laps = [(age, 10 + age, 90 - P.FUEL_PER_LAP * age) for age in range(8)]
         result = P.degradation_from_runs([{"compound": "MEDIUM", "laps": laps}])
         self.assertAlmostEqual(result["MEDIUM"]["slope"], 0, places=6)
+
+
+class Teammates(unittest.TestCase):
+    @staticmethod
+    def driver(number, code, team, times, excluded=()):
+        return {"id": number, "code": code, "team": team,
+                "laps": [{"lap": n, "time": t, "excluded": "pit" if n in excluded else None} for n, t in enumerate(times, 1)]}
+
+    def test_gaps_for_a_pair(self):
+        a = self.driver(1, "AAA", "Team", [90.0] * 12)
+        b = self.driver(2, "BBB", "Team", [90.3] * 12, excluded={5})
+        event = {"drivers": [b, a], "telemetry": {"laps": {"1": [{"time": 80.1}, {"time": 80.0}], "2": [{"time": 80.2}]}}}
+        row = round_gaps(event)[0]
+        self.assertEqual(row["drivers"], ["AAA", "BBB"])
+        self.assertAlmostEqual(row["quali"], -.2)
+        self.assertAlmostEqual(row["race"], -.3)
+        self.assertEqual(row["paired_laps"], 11)
+
+    def test_too_few_paired_laps_gives_no_race_gap(self):
+        event = {"drivers": [self.driver(1, "AAA", "Team", [90.0] * 5), self.driver(2, "BBB", "Team", [90.3] * 5)],
+                 "telemetry": {"laps": {}}}
+        row = round_gaps(event)[0]
+        self.assertIsNone(row["race"])
+        self.assertIsNone(row["quali"])
+
+    def test_teams_without_two_drivers_are_skipped(self):
+        event = {"drivers": [self.driver(1, "AAA", "Solo", [90.0] * 12)], "telemetry": {"laps": {}}}
+        self.assertEqual(round_gaps(event), [])
 
 
 if __name__ == "__main__":

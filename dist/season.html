@@ -15,6 +15,7 @@
   <script src="i18n.js" defer></script>
   <script src="season.js?v=season-lab" defer></script>
   <script src="predict.js" defer></script>
+  <script src="teammates.js" defer></script>
 </head>
 <body class="pw">
   <header class="masthead">
@@ -24,6 +25,7 @@
       <a data-en="Race pace" href="index.html#overview">正赛节奏</a>
       <a data-en="Pit what-if" href="index.html#strategy">进站情景</a>
       <a data-en="2026 season" href="season.html" aria-current="page">2026 赛季</a>
+      <a data-en="Teammates" href="#teammates">队友对决</a>
       <a data-en="Forecasts" href="#prediction">策略预测</a>
       <a data-en="Race archive" href="#roundArchive">数据档案</a>
     </nav>
@@ -87,6 +89,19 @@
             </table></div>
           </section>
         </div>
+      </section>
+
+      <section class="chapter" id="teammates" aria-labelledby="teammatesTitle" hidden>
+        <header class="chapter-head">
+          <span class="chapter-mark">VS</span>
+          <div class="chapter-title"><h2 id="teammatesTitle" data-en="Teammate head-to-head">队友对决</h2>
+            <p data-en="Every round of the season: qualifying gap and race-pace gap between teammates. Click a round to open it in the lab.">整季每一站的队友排位差距与正赛配速差距，点击某一站可在实验室打开。</p></div>
+        </header>
+        <label class="field tm-picker"><span class="sr-only" data-en="Team">车队</span><select id="teammatePair" aria-label="选择车队" data-en-label="Choose a team"></select></label>
+        <p class="tm-summary" id="teammateSummary"></p>
+        <div class="trace-legend tm-legend" id="teammateLegend"></div>
+        <div id="teammateChart" class="tm-chart"></div>
+        <p class="note" data-en="Qualifying uses each driver's fastest lap that has telemetry, which can differ from the official session time. Race pace is the median gap over laps both drivers ran clean (at least 10).">排位差距取各自有遥测数据的最快圈，可能与官方排位成绩略有不同；正赛配速为两人均为有效圈的同圈差值中位数（至少 10 圈）。</p>
       </section>
 
       <section class="chapter prediction-panel" id="prediction" aria-labelledby="predictionTitle" hidden>
