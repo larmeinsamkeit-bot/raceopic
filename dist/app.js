@@ -11,6 +11,7 @@ const tyres = {
 const state = {event: null, mode: 'dominance', sector: null, bend: null, bends: [], at: 0, stops: []};
 const events = new Map();
 const seasonLab = new Map();
+const pastIndex = new Map();
 let eventRequest = 0;
 
 async function readEventData(url) {
@@ -51,8 +52,11 @@ async function setEvent() {
   for (const field of ['driverA', 'driverB', 'export']) $(field).disabled = true;
   try {
     if (!events.has(id)) {
-      const round = seasonLab.get(id).round;
-      const event = await readEventData(`lab-2026/r${String(round).padStart(2, '0')}.json?v=season-lab`);
+      // Every race is fetched only when picked; the page itself loads two small indexes.
+      const url = seasonLab.has(id)
+        ? `lab-2026/r${String(seasonLab.get(id).round).padStart(2, '0')}.json?v=season-lab`
+        : `past/${encodeURIComponent(id)}.json?v=past`;
+      const event = await readEventData(url);
       if (event.id !== id) throw new Error('Race data does not match the requested event');
       events.set(id, event);
     }
@@ -475,12 +479,12 @@ function exportCsv() {
 async function init() {
   try {
     const [season, legacy] = await Promise.all([
-      readEventData('lab-2026/index.json?v=season-lab'), readEventData('events.json?v=replay'),
+      readEventData('lab-2026/index.json?v=season-lab'), readEventData('past/index.json?v=past'),
     ]);
     const current = season.sort((a, b) => b.round - a.round);
     current.forEach(entry => seasonLab.set(entry.id, entry));
     const past = legacy.filter(event => event.year < 2026).sort((a, b) => b.raceKey - a.raceKey);
-    past.forEach(event => events.set(event.id, event));
+    past.forEach(event => pastIndex.set(event.id, event));
     $('race').replaceChildren(
       optionGroup('2026 赛季 · 已完赛', current.map(event => option(event.id, `R${String(event.round).padStart(2, '0')} · ${event.name}`))),
       optionGroup('往季精选', past.map(event => option(event.id, `${event.year} ${event.name}`))),

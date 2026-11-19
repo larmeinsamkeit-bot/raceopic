@@ -314,26 +314,36 @@ def build(slug, source, *, name=None, telemetry=None):
         "paceModel": None if wet else fit_pace(laps),
     }
 
+INDEX_FIELDS = ("id", "name", "year", "circuit", "raceKey", "wet")
+
+def write_json(path, data):
+    path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
+
 if __name__ == "__main__":
+    # Writes one file per past event plus a small index, so the page loads a race only when it is picked.
     cache, output = map(Path, sys.argv[1:3])
     sources = [cache, *map(Path, sys.argv[3:])]
     files = {slug: next((folder / f"{slug}.json" for folder in sources
                          if (folder / f"{slug}.json").exists()), None) for slug in EVENT_NAMES}
     events = [build(slug, json.loads(path.read_text())) for slug, path in files.items() if path]
+    # 2026 rounds come from build_season_lab.py (dist/lab-2026); only earlier seasons belong here.
+    events = [event for event in events if event["year"] < 2026]
     if not events:
-        raise SystemExit("No complete OpenF1 downloads")
-    # Keep events already in the snapshot whose downloads are not in these caches,
-    # so one new race can be added without re-fetching every other event's telemetry.
-    built = {event["id"] for event in events}
-    if output.exists():
-        kept = [event for event in json.loads(output.read_text()) if event["id"] not in built]
-        if kept:
-            print("kept from existing snapshot:", ", ".join(event["id"] for event in kept))
-        events += kept
-    order = list(EVENT_NAMES)
-    events.sort(key=lambda event: order.index(event["id"]) if event["id"] in order else len(order))
+        raise SystemExit("No complete OpenF1 downloads for past seasons")
+    output.mkdir(parents=True, exist_ok=True)
     for event in events:
-        print(event["name"], event["sourceLaps"], len(event["drivers"]),
+        write_json(output / f"{event['id']}.json", event)
+        print(event["name"], event["year"], event["sourceLaps"], len(event["drivers"]),
               {d: len(rows) for d, rows in event["telemetry"]["laps"].items()},
               event["paceModel"])
-    output.write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")) + "\n")
+    # Events already in the folder but not in these caches are kept, so one race can be added
+    # without re-fetching every other event's telemetry.
+    entries = []
+    for path in sorted(output.glob("*.json")):
+        if path.name == "index.json":
+            continue
+        event = json.loads(path.read_text())
+        entries.append({key: event[key] for key in INDEX_FIELDS})
+    entries.sort(key=lambda entry: -entry["raceKey"])
+    write_json(output / "index.json", entries)
+    print("index:", ", ".join(entry["id"] for entry in entries))
