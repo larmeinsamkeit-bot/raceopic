@@ -379,6 +379,7 @@ function renderPace() {
   $('paceA').textContent = `━ ${drivers[0].code}`;
   $('paceB').textContent = `┄ ${drivers[1].code}`;
   drawPace(rows, drivers);
+  renderWeather();
   renderDeg();
   renderStory();
 }

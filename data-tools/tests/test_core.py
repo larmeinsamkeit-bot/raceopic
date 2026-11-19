@@ -9,6 +9,7 @@ from build_dataset import distance_along, interp, neutral_periods, solve  # noqa
 from build_season_lab import NS, group_by_window, timed  # noqa: E402
 import predict_strategy as P  # noqa: E402
 from build_teammates import round_gaps  # noqa: E402
+from add_weather import lap_weather  # noqa: E402
 
 
 def message(time, text, flag=None, scope=None):
@@ -172,6 +173,21 @@ class Teammates(unittest.TestCase):
     def test_teams_without_two_drivers_are_skipped(self):
         event = {"drivers": [self.driver(1, "AAA", "Solo", [90.0] * 12)], "telemetry": {"laps": {}}}
         self.assertEqual(round_gaps(event), [])
+
+
+class Weather(unittest.TestCase):
+    def test_each_lap_takes_the_nearest_sample(self):
+        laps = [{"lap_number": 1, "date_start": "2025-01-01T12:00:00+00:00"},
+                {"lap_number": 1, "date_start": "2025-01-01T12:00:10+00:00"},
+                {"lap_number": 2, "date_start": "2025-01-01T12:01:40+00:00"}]
+        weather = [{"date": "2025-01-01T11:59:00+00:00", "track_temperature": 30, "air_temperature": 20, "rainfall": 0},
+                   {"date": "2025-01-01T12:02:00+00:00", "track_temperature": 28, "air_temperature": 19, "rainfall": 1}]
+        rows = lap_weather(laps, weather)
+        self.assertEqual([r["track"] for r in rows], [30, 28])
+        self.assertEqual([r["rain"] for r in rows], [False, True])
+
+    def test_no_weather_gives_nothing(self):
+        self.assertEqual(lap_weather([{"lap_number": 1, "date_start": "2025-01-01T12:00:00+00:00"}], []), [])
 
 
 if __name__ == "__main__":
