@@ -100,6 +100,252 @@ def score(p, rows):
     }
 
 
+# ---------------------------------------------------------------------------------------------
+# Practice model: tyre degradation from this year's practice long runs, compound pace and pit loss
+# from the previous edition's race, then simulate every one- and two-stop plan over the race.
+
+FUEL_PER_LAP = .06  # s/lap gained as fuel burns; long-run slopes are corrected by this
+PACE_STEP = .35     # s/lap between adjacent compounds when a compound has no race data
+TEMPERATURE = 3.0   # s of race time that separate a plan from one about e (2.7) times likelier
+COMPOUNDS = ("SOFT", "MEDIUM", "HARD")
+# Longest stint the simulation allows per compound. Generic on purpose: taking last year's longest
+# stints made the model copy last year's strategy, which backtested worse than history alone.
+TYRE_LIFE = {"SOFT": 25, "MEDIUM": 35, "HARD": 45}
+WEIGHTS = (0., .3, .6)  # practice shares tried in the backtest; the best mean Brier score is used
+SHORT = {"SOFT": "S", "MEDIUM": "M", "HARD": "H"}
+
+
+def drop_empty(folder):
+    """A session that has not run yet returns []; never keep that answer in the cache."""
+    for path in folder.glob("*.json"):
+        if path.read_text().strip() == "[]":
+            path.unlink()
+
+
+def practice_runs(cache, year, location):
+    """Long runs (5+ representative laps on one set) from every practice session of the weekend."""
+    folder = cache / f"practice-{year}"
+    folder.mkdir(parents=True, exist_ok=True)
+    sessions = [s for s in fetch(folder, "sessions", {"year": year, "location": location})
+                if s["session_name"].startswith("Practice")]
+    runs = []
+    for session in sessions:
+        key = {"session_key": session["session_key"]}
+        laps = fetch(folder, "laps", key)
+        stints = fetch(folder, "stints", key)
+        by_driver = {}
+        for lap in laps:
+            if lap.get("lap_duration") and not lap.get("is_pit_out_lap"):
+                by_driver.setdefault(lap["driver_number"], {})[lap["lap_number"]] = lap["lap_duration"]
+        for stint in stints:
+            compound = (stint.get("compound") or "").upper()
+            if compound not in COMPOUNDS or stint.get("lap_start") is None or stint.get("lap_end") is None:
+                continue
+            times = by_driver.get(stint["driver_number"], {})
+            rows = [(stint["tyre_age_at_start"] + n - stint["lap_start"], n, times[n])
+                    for n in range(stint["lap_start"], stint["lap_end"] + 1) if n in times]
+            if len(rows) < 5:
+                continue
+            middle = sorted(t for _, _, t in rows)[len(rows) // 2]
+            rows = [r for r in rows if r[2] <= middle * 1.025]  # drop cool-down and traffic laps
+            if len(rows) >= 5:
+                runs.append({"compound": compound, "session": session["session_name"],
+                             "driver": stint["driver_number"], "laps": rows})
+    drop_empty(folder)
+    return runs
+
+
+def degradation_from_runs(runs):
+    """Pooled within-run slope per compound, corrected for fuel burn: s lost per lap of tyre age."""
+    result = {}
+    for compound in COMPOUNDS:
+        sxy = sxx = 0.
+        count = 0
+        for run in (r for r in runs if r["compound"] == compound):
+            ages = [a for a, _, _ in run["laps"]]
+            times = [t + FUEL_PER_LAP * (n - run["laps"][0][1]) for _, n, t in run["laps"]]
+            mean_a, mean_t = sum(ages) / len(ages), sum(times) / len(times)
+            sxy += sum((a - mean_a) * (t - mean_t) for a, t in zip(ages, times))
+            sxx += sum((a - mean_a) ** 2 for a in ages)
+            count += len(ages)
+        if sxx > 0:
+            result[compound] = {"slope": sxy / sxx, "laps": count}
+    return result
+
+
+def race_pace(cache, session_key):
+    """Compound offsets and degradation from a race: lap time = driver base + offset + slope * age."""
+    laps = fetch(cache, "laps", {"session_key": session_key})
+    stints = fetch(cache, "stints", {"session_key": session_key})
+    pits = fetch(cache, "pit", {"session_key": session_key})
+    tyre = {}
+    for stint in stints:
+        compound = (stint.get("compound") or "").upper()
+        if compound in COMPOUNDS and stint.get("lap_start") and stint.get("lap_end"):
+            for n in range(stint["lap_start"], stint["lap_end"] + 1):
+                tyre[(stint["driver_number"], n)] = (compound, stint["tyre_age_at_start"] + n - stint["lap_start"])
+    in_laps = {(p["driver_number"], p["lap_number"]) for p in pits}
+    rows = [(lap["driver_number"], *tyre[(lap["driver_number"], lap["lap_number"])],
+             lap["lap_duration"] + FUEL_PER_LAP * lap["lap_number"])
+            for lap in laps
+            if lap.get("lap_duration") and lap["lap_number"] > 1 and not lap.get("is_pit_out_lap")
+            and (lap["driver_number"], lap["lap_number"]) not in in_laps
+            and (lap["driver_number"], lap["lap_number"]) in tyre]
+    if not rows:
+        return None
+    best = sorted(t for *_, t in rows)[len(rows) // 2]
+    rows = [r for r in rows if r[3] <= best * 1.04]  # drop safety-car and traffic laps
+    base = {d: sorted(t for dd, *_, t in rows if dd == d)[0] for d in {r[0] for r in rows}}
+    fit = {}
+    for _ in range(15):  # backfitting: driver bases, then one line per compound
+        fit = {}
+        for compound in COMPOUNDS:
+            points = [(age, t - base[d]) for d, c, age, t in rows if c == compound]
+            if len(points) < 20:
+                continue
+            ma = sum(a for a, _ in points) / len(points)
+            mt = sum(t for _, t in points) / len(points)
+            sxx = sum((a - ma) ** 2 for a, _ in points)
+            slope = sum((a - ma) * (t - mt) for a, t in points) / sxx if sxx else 0.
+            fit[compound] = {"offset": mt - slope * ma, "slope": slope, "laps": len(points)}
+        residual = {}
+        for d, c, age, t in rows:
+            if c in fit:
+                residual.setdefault(d, []).append(t - fit[c]["offset"] - fit[c]["slope"] * age)
+        base = {d: base[d] + sum(v) / len(v) for d, v in residual.items()} | {d: b for d, b in base.items() if d not in residual}
+    reference = fit.get("HARD") or next(iter(fit.values()), None)
+    if reference is None:
+        return None
+    reference_offset = reference["offset"]
+    for compound in fit:
+        fit[compound]["offset"] -= reference_offset
+    lanes = sorted(p["lane_duration"] for p in pits if p.get("lane_duration") and 15 < p["lane_duration"] < 35)
+    stints_by = {}
+    for stint in stints:
+        if (stint.get("compound") or "").upper() in COMPOUNDS and stint.get("lap_start") and stint.get("lap_end"):
+            stints_by.setdefault(stint["compound"].upper(), []).append(stint["lap_end"] - stint["lap_start"] + 1)
+    longest = {c: sorted(v)[int(.9 * (len(v) - 1))] for c, v in stints_by.items()}
+    return {"compounds": fit, "pit_loss": lanes[len(lanes) // 2] if lanes else 21.,
+            "longest_stint": longest}
+
+
+def simulate(laps, pace, pit_loss, longest):
+    """Total race time of every 1- and 2-stop plan with at least two dry compounds."""
+    def stint(compound, length):
+        p = pace[compound]
+        return length * p["offset"] + p["slope"] * length * (length + 1) / 2
+
+    def allowed(compound, length):
+        return 4 <= length <= longest.get(compound, laps)
+
+    plans = []
+    for first in COMPOUNDS:
+        for second in COMPOUNDS:
+            if first != second:
+                for stop in range(4, laps - 3):
+                    if allowed(first, stop) and allowed(second, laps - stop):
+                        plans.append(((first, second), (stop,),
+                                      stint(first, stop) + stint(second, laps - stop) + pit_loss))
+            for third in COMPOUNDS:
+                if len({first, second, third}) < 2:
+                    continue
+                for a in range(4, laps - 7):
+                    if not allowed(first, a):
+                        continue
+                    for b in range(a + 4, laps - 3):
+                        if allowed(second, b - a) and allowed(third, laps - b):
+                            plans.append(((first, second, third), (a, b),
+                                          stint(first, a) + stint(second, b - a) + stint(third, laps - b) + 2 * pit_loss))
+    return plans
+
+
+def plans_to_prediction(plans, laps):
+    """Turn simulated race times into probabilities: plans within a few seconds of the best are plausible."""
+    best = min(t for *_, t in plans)
+    by_sequence = {}
+    for sequence, stops, total in plans:
+        key = "-".join(SHORT[c] for c in sequence)
+        if key not in by_sequence or total < by_sequence[key][1]:
+            by_sequence[key] = (stops, total)
+    weights = {key: pow(2.718281828, -(total - best) / TEMPERATURE) for key, (_, total) in by_sequence.items()}
+    norm = sum(weights.values())
+    stop_probs = Counter()
+    for key, w in weights.items():
+        stop_probs[str(key.count("-"))] += w / norm
+    first = [(stops[0] / laps, pow(2.718281828, -(total - best) / TEMPERATURE))
+             for _, stops, total in plans if total - best < 3 * TEMPERATURE]
+    window = [round(weighted_quantile(first, q) * laps) for q in (.25, .5, .75)]
+    ranked = sorted(weights.items(), key=lambda kv: -kv[1])
+    return {
+        "stop_probabilities": {k: round(v, 3) for k, v in sorted(stop_probs.items())},
+        "top_sequences": [{"sequence": k, "probability": round(w / norm, 3)} for k, w in ranked[:5]],
+        "first_stop_window": {"from": window[0], "median": window[1], "to": window[2]},
+        "best_plan": {"sequence": ranked[0][0], "stops": list(by_sequence[ranked[0][0]][0])},
+    }
+
+
+def practice_model(cache, year, location, laps, prior_session):
+    """Simulated prediction from practice degradation, or None when practice has no usable long runs."""
+    runs = practice_runs(cache, year, location)
+    prior = race_pace(cache, prior_session)
+    if not prior or not runs:
+        return None
+    measured = degradation_from_runs(runs)
+    pace = {}
+    hard = prior["compounds"].get("HARD", {"offset": 0., "slope": .03})
+    for i, compound in enumerate(COMPOUNDS):  # SOFT, MEDIUM, HARD
+        base = prior["compounds"].get(compound, {"offset": hard["offset"] - PACE_STEP * (2 - i),
+                                                 "slope": hard["slope"] * (1.6 if i == 0 else 1.3 if i == 1 else 1)})
+        slope = base["slope"]
+        if compound in measured and measured[compound]["laps"] >= 15:
+            slope = measured[compound]["slope"]  # this year's tyres and track, when the sample is big enough
+        pace[compound] = {"offset": base["offset"], "slope": max(.005, slope)}
+    plans = simulate(laps, pace, prior["pit_loss"], TYRE_LIFE)
+    if not plans:
+        return None
+    prediction = plans_to_prediction(plans, laps)
+    prediction["inputs"] = {
+        "long_runs": len(runs), "long_run_laps": sum(len(r["laps"]) for r in runs),
+        "practice_degradation": {SHORT[c]: {"slope": round(v["slope"], 4), "laps": v["laps"]} for c, v in measured.items()},
+        "pace_used": {SHORT[c]: {k: round(v, 4) for k, v in p.items()} for c, p in pace.items()},
+        "pit_loss": round(prior["pit_loss"], 2),
+        "tyre_life": {SHORT[c]: v for c, v in TYRE_LIFE.items()},
+        "previous_longest_stint": {SHORT[c]: v for c, v in prior["longest_stint"].items()},
+    }
+    return prediction
+
+
+def blend(history_prediction, practice_prediction, weight):
+    """Mix the practice simulation with the history prior; weight is the share given to practice."""
+    stops = Counter()
+    for source, w in ((history_prediction, 1 - weight), (practice_prediction, weight)):
+        for k, v in source["stop_probabilities"].items():
+            stops[k] += w * v
+    sequences = Counter()
+    for source, w in ((history_prediction, 1 - weight), (practice_prediction, weight)):
+        for row in source["top_sequences"]:
+            sequences[row["sequence"]] += w * row["probability"]
+    window = {key: round((1 - weight) * history_prediction["first_stop_window"][key]
+                         + weight * practice_prediction["first_stop_window"][key])
+              for key in ("from", "median", "to")}
+    stop_probs = {k: round(v, 3) for k, v in sorted(stops.items())}
+    return {
+        "most_likely_stops": int(max(stop_probs, key=stop_probs.get)),
+        "stop_probabilities": stop_probs,
+        "top_sequences": [{"sequence": k, "probability": round(v, 3)} for k, v in sequences.most_common(5)],
+        "first_stop_window": window,
+    }
+
+
+def full_model(cache, location, year, laps, history, weight):
+    """History prior blended with this year's practice simulation (prior race = latest edition in history)."""
+    history_prediction = model(history, laps)
+    practice = practice_model(cache, year, location, laps, history[-1]["session_key"])
+    if practice is None:
+        return history_prediction, None
+    return blend(history_prediction, practice, weight), practice
+
+
 def predict(args):
     history = []
     for offset, year in enumerate(sorted(args.history)):
@@ -115,27 +361,65 @@ def predict(args):
     if not history:
         raise SystemExit("No historical races found.")
 
-    prediction = model(history, args.laps)
+    # Backtest every edition that has earlier ones: history alone, and history + that year's practice
+    # at each candidate weight. The weight with the best mean Brier score is used for the forecast.
+    backtests = []
+    for i in range(1, len(history)):
+        target_race, earlier = history[i], history[:i]
+        row = {"target_year": target_race["year"], "trained_on": [r["year"] for r in earlier], "by_weight": {}}
+        for weight in WEIGHTS:
+            guess, used = full_model(args.cache, args.location, target_race["year"], target_race["laps"],
+                                     earlier, weight)
+            if weight == 0 or used:
+                row["by_weight"][str(weight)] = score(guess, target_race["rows"])
+        row["history_only"] = row["by_weight"]["0.0"]
+        backtests.append(row)
+    usable = [w for w in WEIGHTS if backtests and all(str(w) in b["by_weight"] for b in backtests)]
+    mean_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for b in backtests) / len(backtests), 3)
+                  for w in usable}
+    chosen = args.practice_weight if args.practice_weight is not None else \
+        (float(min(mean_brier, key=mean_brier.get)) if mean_brier else 0.)
+    for row in backtests:
+        row["with_practice"] = row["by_weight"].get(str(chosen)) if chosen else None
+        print(f"Backtest {row['target_year']} (trained on {row['trained_on']}):")
+        for weight, result in row["by_weight"].items():
+            print(f"  practice {weight}: stops {result['stop_count_hit_rate']}, window {result['first_stop_in_window']}, "
+                  f"MAE {result['first_stop_mae_laps']}, Brier {result['stop_count_brier']}")
+    print("mean Brier by practice weight:", mean_brier, "-> using", chosen)
+
+    prediction, practice = full_model(args.cache, args.location, args.year, args.laps, history, chosen)
+    print("practice data:", "used" if practice else "not available yet, history only")
     target = race_session(args.cache, args.year, args.location)
-    backtest = None
-    if len(history) > 1:
-        last = history[-1]
-        guess = model(history[:-1], last["laps"])
-        backtest = {"target_year": last["year"], "trained_on": [r["year"] for r in history[:-1]],
-                    "prediction": guess, "score": score(guess, last["rows"])}
-        print(f"Backtest on {last['year']}:", json.dumps(backtest["score"]))
+    latest = backtests[-1] if backtests else None
     forecast = {
         "race": {"year": args.year, "location": args.location, "laps": args.laps,
                  "session_key": target and target["session_key"],
                  "date_start": target and target["date_start"]},
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "method": "Recency-weighted frequencies over full-distance runners in earlier editions; "
-                  "first stop scaled by race distance.",
+        "method": ("History prior (recency-weighted strategy frequencies) blended "
+                   f"{round(100 * chosen)}% with a race simulation that uses this year's "
+                   "practice long-run tyre degradation, the previous edition's compound pace and pit loss."
+                   if practice else
+                   "Recency-weighted frequencies over full-distance runners in earlier editions; "
+                   "practice data not available yet."),
+        "uses_practice": practice is not None and chosen > 0,
+        "practice_weight": chosen,
+        "weight_selection": {"candidates": list(WEIGHTS), "mean_brier": mean_brier,
+                             "rule": "lowest mean stop-count Brier score across backtests"},
+        "practice": practice,
         "history": [{k: v for k, v in race.items() if k != "rows"} for race in history],
         "prediction": prediction,
-        "baseline_backtest": backtest,
+        "backtests": backtests,
+        "baseline_backtest": latest and {"target_year": latest["target_year"], "trained_on": latest["trained_on"],
+                                         "score": latest["history_only"]},
+        "practice_backtest": latest and latest["with_practice"] and {
+            "target_year": latest["target_year"], "trained_on": latest["trained_on"], "score": latest["with_practice"]},
         "caveats": ["Earlier editions ran under different technical rules and tyre allocations.",
-                    "Safety cars and red flags are not modelled; they move stop laps."],
+                    "Safety cars and red flags are not modelled; they move stop laps.",
+                    "Pit loss uses the median pit-lane time of the previous edition.",
+                    "Las Vegas track evolution is strong: practice long runs often get faster with tyre age, "
+                    "so degradation is floored and the simulation mostly weighs pit loss against tyre life.",
+                    "Only two editions can be backtested; the chosen weight is a small-sample choice."],
         "result": None,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +450,8 @@ if __name__ == "__main__":
     parser.add_argument("--year", type=int, default=2026)
     parser.add_argument("--laps", type=int, default=50, help="scheduled race distance of the target race")
     parser.add_argument("--history", type=int, nargs="+", default=[2023, 2024, 2025])
+    parser.add_argument("--practice-weight", type=float, default=None,
+                        help="share given to the practice simulation; default picks it by backtest")
     args = parser.parse_args()
     args.cache.mkdir(parents=True, exist_ok=True)
     (predict if args.command == "predict" else evaluate)(args)

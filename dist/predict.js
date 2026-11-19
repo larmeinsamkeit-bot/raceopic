@@ -53,13 +53,31 @@
     el('sequenceList').innerHTML = p.top_sequences.map(s =>
       `<li><span class="sequence">${chips(s.sequence)}</span><span class="numeric">${pct(s.probability)}</span></li>`).join('');
 
-    if (bt) {
+    if (data.backtests?.length) {
+      // Every backtested edition: history alone vs history + that year's practice at each tried weight.
+      const chosen = data.practice_weight ?? 0;
+      const weights = Object.keys(data.backtests[0].by_weight ?? {'0.0': null});
+      const label = w => Number(w) === 0 ? '仅历史' : `历史 + 练习赛 ${Math.round(Number(w) * 100)}%`;
+      const rows = data.backtests.flatMap(b => Object.entries(b.by_weight ?? {'0.0': b.history_only}).map(([w, s]) => `
+        <tr${Number(w) === chosen ? ' class="chosen"' : ''}><th scope="row">${b.target_year}</th><td>${label(w)}</td>
+          <td class="numeric">${pct(s.stop_count_hit_rate)}</td><td class="numeric">${pct(s.first_stop_in_window)}</td>
+          <td class="numeric">${s.first_stop_mae_laps ?? '—'}</td><td class="numeric">${s.stop_count_brier}</td></tr>`)).join('');
+      const brier = data.weight_selection?.mean_brier ?? {};
+      el('predictionBacktest').innerHTML = `
+        <p><strong>回测</strong>：用更早的年份预测 ${data.backtests.map(b => b.target_year).join('、')} 年，再和实际结果比对。
+        ${weights.length > 1 ? `练习赛模拟的占比按平均 Brier 分数（越低越好）自动选择：${weights.map(w => `${label(w)} ${brier[w] ?? '—'}`).join('，')}，采用「${label(chosen)}」。` : ''}
+        ${data.uses_practice ? '本次预测已用上今年练习赛的长距离数据。' : '今年的练习赛数据尚未产生，本次预测只用历史数据；练习赛后会重新生成。'}</p>
+        <div class="standings-scroll"><table class="sports-table backtest-table">
+          <thead><tr><th scope="col">年份</th><th scope="col">模型</th><th scope="col">停站次数命中</th>
+            <th scope="col">首停在窗口内</th><th scope="col">首停误差（圈）</th><th scope="col">Brier</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+        <p class="backtest-note">只有两届可以回测，差距很小；拉斯维加斯赛道演进很强，练习赛长距离常常越跑越快，轮胎衰退难以量测。</p>`;
+    } else if (bt) {
       const s = bt.score;
       el('predictionBacktest').innerHTML =
         `<strong>基准回测</strong>：只用 ${bt.trained_on.join('、')} 年数据预测 ${bt.target_year} 年，` +
         `停站次数命中 ${pct(s.stop_count_hit_rate)}，首选配方命中 ${pct(s.top_sequence_hit_rate)}，` +
-        `首停落在窗口内 ${pct(s.first_stop_in_window)}，首停平均误差 ${s.first_stop_mae_laps} 圈。` +
-        `纯历史频率模型跟不上逐年变化，这是之后改进要超越的基线。`;
+        `首停落在窗口内 ${pct(s.first_stop_in_window)}，首停平均误差 ${s.first_stop_mae_laps} 圈。`;
     }
     el('prediction').hidden = false;
   }
