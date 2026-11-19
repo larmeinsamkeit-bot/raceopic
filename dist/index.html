@@ -16,6 +16,7 @@
   <script src="zoom.js" defer></script>
   <script src="trace.js" defer></script>
   <script src="story.js" defer></script>
+  <script src="deg.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
@@ -162,6 +163,14 @@
         </div>
         <div id="tooltip" class="tooltip" aria-live="polite" data-en="Move over or tap the chart for a lap.">在图上移动或轻触，查看单圈数据。</div>
         <p class="note" id="stintNote"></p>
+        <div class="story-block deg-block">
+          <div class="trace-head"><h3 data-en="Tyre degradation by stint">各段轮胎衰退</h3></div>
+          <div class="deg-grid">
+            <div id="degChart" class="deg-chart"></div>
+            <div id="degTable" class="deg-table-wrap"></div>
+          </div>
+          <p class="note" id="degNote"></p>
+        </div>
         <div class="story-block">
           <div class="trace-head"><h3 id="storyTitle">比赛进程 · 与领先者的差距</h3><output class="trace-readout" id="storyReadout"></output></div>
           <div id="storyChart" class="story-chart"></div>
