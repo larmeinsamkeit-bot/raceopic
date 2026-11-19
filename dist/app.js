@@ -115,11 +115,15 @@ function renderEvent() {
   const trackDrivers = state.event.drivers.filter(hasTelemetry);
   const paceDrivers = state.event.drivers.filter(driver => !hasTelemetry(driver));
   const driverOption = d => option(d.id, `${d.code} · ${d.surname}${d.laps.length ? '' : '（仅排位）'}`);
+  // Default to the first two drivers with telemetry who ran most of the race, so a pair always compares.
+  const ranFar = d => d.laps.length >= .9 * state.event.totalLaps;
+  const defaults = [...trackDrivers.filter(ranFar), ...trackDrivers.filter(d => !ranFar(d))].slice(0, 2);
   for (const [index, id] of ['driverA', 'driverB'].entries()) {
     const groups = [optionGroup('有排位遥测', trackDrivers.map(driverOption))];
     if (paceDrivers.length) groups.push(optionGroup('仅正赛数据', paceDrivers.map(driverOption)));
     $(id).replaceChildren(...groups);
-    $(id).selectedIndex = index;
+    if (defaults[index]) $(id).value = defaults[index].id;
+    else $(id).selectedIndex = index;
   }
   restoreDrivers();
   $('coverage').textContent = `正赛 ${state.event.sourceLaps.toLocaleString()} 条 · 遥测 ${trackDrivers.length}/${state.event.drivers.length} 位`;
@@ -328,6 +332,18 @@ function setDistance(index) {
   }).join('');
 }
 
+function noPairReason(drivers, rows) {
+  // Say why nothing could be paired, and what to try instead.
+  const total = state.event.totalLaps;
+  const missing = drivers.find(d => !d.laps.length);
+  if (missing) return `${missing.code} 没有正赛圈速记录，请换一位车手`;
+  const short = drivers.find(d => d.laps.length < .5 * total);
+  if (short) return `${short.code} 只完成 ${short.laps.length} / ${total} 圈，可能提前退赛，请换一位车手`;
+  if ($('sameTyre').checked) return '两人没有使用相同配方的同一圈，取消「仅比较相同配方」即可';
+  if ($('clean').checked && rows.every(list => list.length)) return '两人的有效圈没有重叠，取消「排除异常圈」可查看全部';
+  return '这组车手没有可配对的圈，请换一位车手';
+}
+
 function renderPace() {
   const drivers = pair();
   const rows = drivers.map(d => d.laps.filter(r => r.time != null && (!$('clean').checked || !r.excluded)));
@@ -342,7 +358,7 @@ function renderPace() {
   $('fastestDriver').textContent = best ? `${best.code} · 第 ${best.lap} 圈` : '无样本';
   const middle = quantile(matches, .5);
   $('gap').textContent = middle === null ? '—' : `${signed(middle)} s`;
-  $('gapDriver').textContent = middle === null ? '没有满足条件的配对圈' :
+  $('gapDriver').textContent = middle === null ? noPairReason(drivers, rows) :
     Math.abs(middle) < .0005 ? '两位车手接近' : `${drivers[middle < 0 ? 0 : 1].code} 的配对圈较快`;
   $('spread').textContent = matches.length ? `${signed(quantile(matches, .25), 2)} ～ ${signed(quantile(matches, .75), 2)} s` : '—';
   $('samples').textContent = matches.length;
