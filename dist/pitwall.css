@@ -632,3 +632,9 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .story-pit.pit-0 { fill: var(--petronas); stroke: var(--bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .story-pit.pit-1 { fill: var(--silver); stroke: var(--bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 @media (max-width: 600px) { .story-chart { height: 240px; } }
+
+/* language toggle */
+.lang-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 36px; padding: 0 12px;
+  border: 1px solid var(--rule-strong); border-radius: 999px; color: var(--silver); font: 600 13px var(--sans); }
+.lang-toggle:hover { border-color: var(--petronas); color: var(--petronas); }
+@media (max-width: 600px) { .lang-toggle { margin-left: auto; } }

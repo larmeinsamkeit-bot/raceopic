@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="2026 F1 车手积分榜、车队积分榜、赛历和逐站数据档案">
+  <meta name="title-en" content="2026 season · Raceopic">
   <title>2026 赛季 · Raceopic</title>
   <link rel="stylesheet" href="style.css?v=season">
   <link rel="stylesheet" href="season.css">
@@ -11,56 +12,58 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Noto+Sans+SC:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="pitwall.css">
+  <script src="i18n.js" defer></script>
   <script src="season.js?v=season-lab" defer></script>
   <script src="predict.js" defer></script>
 </head>
 <body class="pw">
   <header class="masthead">
     <a href="index.html" class="wordmark">Race<span>opic</span></a>
-    <nav class="tabs" aria-label="主导航">
-      <a href="index.html#track">遥测</a>
-      <a href="index.html#overview">正赛节奏</a>
-      <a href="index.html#strategy">进站情景</a>
-      <a href="season.html" aria-current="page">2026 赛季</a>
-      <a href="#prediction">策略预测</a>
-      <a href="#roundArchive">数据档案</a>
+    <nav class="tabs" aria-label="主导航" data-en-label="Main">
+      <a data-en="Telemetry" href="index.html#track">遥测</a>
+      <a data-en="Race pace" href="index.html#overview">正赛节奏</a>
+      <a data-en="Pit what-if" href="index.html#strategy">进站情景</a>
+      <a data-en="2026 season" href="season.html" aria-current="page">2026 赛季</a>
+      <a data-en="Forecasts" href="#prediction">策略预测</a>
+      <a data-en="Race archive" href="#roundArchive">数据档案</a>
     </nav>
     <span class="source"><span class="status-dot" aria-hidden="true"></span>Jolpica · OpenF1</span>
+    <a id="langToggle" class="lang-toggle" href="?lang=en" lang="en">EN</a>
   </header>
 
-  <div id="seasonLoading" role="status" class="loading">正在读取已保存的赛季数据…</div>
+  <div id="seasonLoading" role="status" class="loading" data-en="Loading saved season data…">正在读取已保存的赛季数据…</div>
 
   <div id="seasonContent" class="layout" hidden>
-    <section class="deck" aria-label="分站选择">
+    <section class="deck" aria-label="分站选择" data-en-label="Round picker">
       <div class="deck-block">
-        <span class="step">01 · 分站</span>
+        <span class="step" data-en="01 · Round">01 · 分站</span>
         <div class="round-picker">
-          <button id="previousRound" type="button" aria-label="上一站">←</button>
-          <label class="field"><span class="sr-only">选择分站</span><select id="roundSelect"></select></label>
-          <button id="nextRound" type="button" aria-label="下一站">→</button>
+          <button id="previousRound" type="button" aria-label="上一站" data-en-label="Previous round">←</button>
+          <label class="field"><span class="sr-only" data-en="Choose a round">选择分站</span><select id="roundSelect"></select></label>
+          <button id="nextRound" type="button" aria-label="下一站" data-en-label="Next round">→</button>
         </div>
         <span class="coverage" id="roundMeta"></span>
       </div>
       <div class="deck-block">
-        <span class="step">02 · 赛季进度</span>
-        <progress id="calendarProgress" aria-label="赛季进度"></progress>
+        <span class="step" data-en="02 · Season progress">02 · 赛季进度</span>
+        <progress id="calendarProgress" aria-label="赛季进度" data-en-label="Season progress"></progress>
         <span class="deck-next" id="calendarNext"></span>
       </div>
       <div class="deck-block">
-        <span class="step">03 · 本轮赛程</span>
-        <details class="session-schedule"><summary>展开赛程 <span>当地设备时间</span></summary><div id="sessionSchedule"></div></details>
+        <span class="step" data-en="03 · Weekend schedule">03 · 本轮赛程</span>
+        <details class="session-schedule"><summary><span data-en="Show schedule">展开赛程</span> <span data-en="your local time">当地设备时间</span></summary><div id="sessionSchedule"></div></details>
       </div>
       <div class="deck-block">
-        <span class="step">04 · 数据</span>
+        <span class="step" data-en="04 · Data">04 · 数据</span>
         <span class="coverage" id="lastUpdated"></span>
-        <button type="button" id="syncSeason" class="export">刷新赛历与积分</button>
-        <button id="downloadSeason" class="text-link" type="button">下载赛季 JSON</button>
+        <button type="button" id="syncSeason" class="export" data-en="Refresh calendar and standings">刷新赛历与积分</button>
+        <button id="downloadSeason" class="text-link" type="button" data-en="Download season JSON">下载赛季 JSON</button>
       </div>
     </section>
 
     <main class="stage">
       <section class="verdict" aria-labelledby="calendarTitle">
-        <h1>2026 赛季</h1>
+        <h1 data-en="2026 season">2026 赛季</h1>
         <p class="season-title" id="calendarTitle"></p>
         <p class="verdict-text board-notice" id="boardNotice"></p>
       </section>
@@ -68,34 +71,34 @@
       <section class="chapter" aria-labelledby="standingsTitle">
         <header class="chapter-head">
           <span class="chapter-mark">A</span>
-          <div class="chapter-title"><h2 id="standingsTitle">积分榜</h2><p>当轮结束后的排名，与上一轮相比的名次和积分变化</p></div>
+          <div class="chapter-title"><h2 id="standingsTitle" data-en="Standings">积分榜</h2><p data-en="Standings after the round, with changes since the previous round">当轮结束后的排名，与上一轮相比的名次和积分变化</p></div>
         </header>
         <div class="season-board-grid">
           <section class="standing-panel" aria-labelledby="driverTitle">
-            <div class="board-head"><h3 id="driverTitle">车手</h3><span id="driverCount" class="coverage"></span></div>
-            <div class="standings-scroll"><table class="sports-table" aria-label="车手积分榜">
-              <thead><tr><th scope="col">排名</th><th scope="col">车手</th><th scope="col">本轮</th><th scope="col">积分</th></tr></thead><tbody id="driverBoard"></tbody>
+            <div class="board-head"><h3 id="driverTitle" data-en="Drivers">车手</h3><span id="driverCount" class="coverage"></span></div>
+            <div class="standings-scroll"><table class="sports-table" aria-label="车手积分榜" data-en-label="Driver standings">
+              <thead><tr><th scope="col" data-en="Pos">排名</th><th scope="col" data-en="Driver">车手</th><th scope="col" data-en="Round">本轮</th><th scope="col" data-en="Points">积分</th></tr></thead><tbody id="driverBoard"></tbody>
             </table></div>
           </section>
           <section class="standing-panel" aria-labelledby="teamTitle">
-            <div class="board-head"><h3 id="teamTitle">车队</h3><span id="teamCount" class="coverage"></span></div>
-            <div class="standings-scroll"><table class="sports-table" aria-label="车队积分榜">
-              <thead><tr><th scope="col">排名</th><th scope="col">车队</th><th scope="col">本轮</th><th scope="col">积分</th></tr></thead><tbody id="teamBoard"></tbody>
+            <div class="board-head"><h3 id="teamTitle" data-en="Constructors">车队</h3><span id="teamCount" class="coverage"></span></div>
+            <div class="standings-scroll"><table class="sports-table" aria-label="车队积分榜" data-en-label="Constructor standings">
+              <thead><tr><th scope="col" data-en="Pos">排名</th><th scope="col" data-en="Team">车队</th><th scope="col" data-en="Round">本轮</th><th scope="col" data-en="Points">积分</th></tr></thead><tbody id="teamBoard"></tbody>
             </table></div>
           </section>
         </div>
       </section>
 
       <section class="chapter prediction-panel" id="prediction" aria-labelledby="predictionTitle" hidden>
-        <header class="chapter-head"><span class="chapter-mark">B</span><div class="chapter-title"><p class="kicker" id="predictionEyebrow">赛前策略预测</p><h2 id="predictionTitle"></h2></div>
-          <a id="predictionSource" class="back-link" href="predictions/2026-las-vegas.json">预测文件 JSON ↗</a>
+        <header class="chapter-head"><span class="chapter-mark">B</span><div class="chapter-title"><p class="kicker" id="predictionEyebrow" data-en="Pre-race strategy forecast">赛前策略预测</p><h2 id="predictionTitle"></h2></div>
+          <a id="predictionSource" class="back-link" href="predictions/2026-las-vegas.json" data-en="Forecast JSON ↗">预测文件 JSON ↗</a>
         </header>
-        <div class="segmented forecast-picker" id="forecastPicker" role="group" aria-label="选择分站预测" hidden></div>
+        <div class="segmented forecast-picker" id="forecastPicker" role="group" aria-label="选择分站预测" data-en-label="Choose a forecast" hidden></div>
         <p id="predictionLead" class="panel-note"></p>
         <div class="prediction-grid" id="predictionCards"></div>
         <div class="prediction-split">
-          <div><h3>停站次数概率</h3><div id="stopBars" class="stop-bars"></div></div>
-          <div><h3>最可能的配方顺序</h3><ol id="sequenceList" class="sequence-list"></ol></div>
+          <div><h3 data-en="Stop-count probability">停站次数概率</h3><div id="stopBars" class="stop-bars"></div></div>
+          <div><h3 data-en="Most likely compound orders">最可能的配方顺序</h3><ol id="sequenceList" class="sequence-list"></ol></div>
         </div>
         <div id="predictionBacktest" class="prediction-backtest"></div>
         <div id="forecastRecord" class="forecast-record"></div>
@@ -104,31 +107,31 @@
       <section class="chapter" aria-labelledby="resultTitle">
         <header class="chapter-head">
           <span class="chapter-mark">C</span>
-          <div class="chapter-title"><h2 id="resultTitle">本轮成绩</h2><p>正赛、排位与冲刺分类</p></div>
-          <div class="segmented" id="resultModes" aria-label="分类成绩类型"></div>
+          <div class="chapter-title"><h2 id="resultTitle" data-en="Round results">本轮成绩</h2><p data-en="Race, qualifying and sprint classifications">正赛、排位与冲刺分类</p></div>
+          <div class="segmented" id="resultModes" aria-label="分类成绩类型" data-en-label="Classification"></div>
         </header>
         <p id="resultEmpty" class="note" hidden></p>
-        <div class="standings-scroll" id="resultScroll" hidden><table class="sports-table result-table" aria-label="本轮分类成绩"><thead id="resultHead"></thead><tbody id="resultRows"></tbody></table></div>
+        <div class="standings-scroll" id="resultScroll" hidden><table class="sports-table result-table" aria-label="本轮分类成绩" data-en-label="Round classification"><thead id="resultHead"></thead><tbody id="resultRows"></tbody></table></div>
       </section>
 
       <section class="chapter" id="roundArchive" aria-labelledby="archiveTitle">
         <header class="chapter-head">
           <span class="chapter-mark">D</span>
-          <div class="chapter-title"><h2 id="archiveTitle">正赛数据档案</h2><p>OpenF1 逐圈计时、轮胎、进站、天气与赛会消息</p></div>
-          <div class="archive-actions"><a id="archiveLab" class="text-link" hidden>分析这一站 ↗</a><a id="archiveDownload" class="text-link" download hidden>下载整站 JSON</a></div>
+          <div class="chapter-title"><h2 id="archiveTitle" data-en="Race archive">正赛数据档案</h2><p data-en="OpenF1 laps, stints, pit stops, weather and race control">OpenF1 逐圈计时、轮胎、进站、天气与赛会消息</p></div>
+          <div class="archive-actions"><a id="archiveLab" class="text-link" hidden data-en="Analyse this race ↗">分析这一站 ↗</a><a id="archiveDownload" class="text-link" download hidden data-en="Download race JSON">下载整站 JSON</a></div>
         </header>
         <p id="archiveStatus" class="note"></p>
         <div id="archiveContent" hidden>
-          <div id="archiveModes" class="segmented archive-modes" aria-label="数据类别"></div>
-          <label id="archiveDriverFilter" class="archive-driver">按车手查看 <select id="archiveDriver"></select></label>
+          <div id="archiveModes" class="segmented archive-modes" aria-label="数据类别" data-en-label="Data type"></div>
+          <label id="archiveDriverFilter" class="archive-driver"><span data-en="Driver">按车手查看</span> <select id="archiveDriver"></select></label>
           <div id="archivePreview" class="standings-scroll"></div>
         </div>
       </section>
 
       <section class="chapter method">
-        <p class="season-sources">赛历、分类成绩与积分来自 <a href="https://github.com/jolpica/jolpica-f1/blob/main/docs/README.md">Jolpica F1</a>，正赛数据档案来自 <a href="https://openf1.org/docs/">OpenF1</a>。积分按正赛结束后的轮次更新，包含已计入的冲刺赛积分。可对照 <a href="https://www.formula1.com/en/results/2026/drivers">F1 官方车手榜</a> 与 <a href="https://www.formula1.com/en/results/2026/team">车队榜</a>。</p>
+        <p class="season-sources" data-en-html="Calendar, classifications and standings from <a href=&quot;https://github.com/jolpica/jolpica-f1/blob/main/docs/README.md&quot;>Jolpica F1</a>; race archives from <a href=&quot;https://openf1.org/docs/&quot;>OpenF1</a>. Standings update after each race and include sprint points. Compare with the official <a href=&quot;https://www.formula1.com/en/results/2026/drivers&quot;>driver</a> and <a href=&quot;https://www.formula1.com/en/results/2026/team&quot;>team</a> standings.">赛历、分类成绩与积分来自 <a href="https://github.com/jolpica/jolpica-f1/blob/main/docs/README.md">Jolpica F1</a>，正赛数据档案来自 <a href="https://openf1.org/docs/">OpenF1</a>。积分按正赛结束后的轮次更新，包含已计入的冲刺赛积分。可对照 <a href="https://www.formula1.com/en/results/2026/drivers">F1 官方车手榜</a> 与 <a href="https://www.formula1.com/en/results/2026/team">车队榜</a>。</p>
       </section>
-      <footer class="colophon"><span class="wordmark">Race<span>opic</span></span><span>独立赛车数据项目 · 非官方 F1 产品</span></footer>
+      <footer class="colophon"><span class="wordmark">Race<span>opic</span></span><span data-en="Independent racing data project · not an official F1 product">独立赛车数据项目 · 非官方 F1 产品</span></footer>
     </main>
   </div>
 </body>

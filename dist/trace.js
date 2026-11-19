@@ -44,15 +44,15 @@ function traceSummary(gap, drivers, bends, cuts) {
     .filter(s => Math.abs(s.change) >= .005)
     .sort((x, y) => Math.abs(y.change) - Math.abs(x.change)).slice(0, 3);
   const total = gap[n] - gap[0];
-  const lead = total === 0 ? '两圈同时到达终点' :
-    `全圈 ${drivers[total > 0 ? 1 : 0].code} 快 ${Math.abs(total).toFixed(3)} 秒`;
-  if (!top.length) return `${lead}。`;
+  const lead = total === 0 ? L('两圈同时到达终点', 'Both laps end level') :
+    L(`全圈 ${drivers[total > 0 ? 1 : 0].code} 快 ${Math.abs(total).toFixed(3)} 秒`, `${drivers[total > 0 ? 1 : 0].code} is ${Math.abs(total).toFixed(3)} s faster over the lap`);
+  if (!top.length) return L(`${lead}。`, `${lead}.`);
   const parts = top.map(s => {
     const where = `${Math.round(100 * s.a / n)}–${Math.round(100 * s.b / n)}%` +
-      (s.bend >= 0 ? `（弯区 ${s.bend + 1}）` : `（S${s.sector}）`);
-    return `${drivers[s.change > 0 ? 1 : 0].code} 在 ${where}赢 ${Math.abs(s.change).toFixed(3)} 秒`;
+      (s.bend >= 0 ? L(`（弯区 ${s.bend + 1}）`, ` (corner ${s.bend + 1})`) : L(`（S${s.sector}）`, ` (S${s.sector})`));
+    return L(`${drivers[s.change > 0 ? 1 : 0].code} 在 ${where}赢 ${Math.abs(s.change).toFixed(3)} 秒`, `${drivers[s.change > 0 ? 1 : 0].code} gains ${Math.abs(s.change).toFixed(3)} s at ${where}`);
   });
-  return `${lead}。差距最大的路段：${parts.join('；')}。`;
+  return L(`${lead}。差距最大的路段：${parts.join('；')}。`, `${lead}. Biggest swings: ${parts.join('; ')}.`);
 }
 
 function drawTrace(first, second, drivers, bounds) {
@@ -100,13 +100,13 @@ function drawTrace(first, second, drivers, bounds) {
     ? `<rect class="trace-brake brake-${i}" x="${x(j)}" width="${x(1) + .5}" y="${i ? 15 : 2}" height="11"/>` : '').join('')).join('');
 
   $('traceChart').innerHTML =
-    strip(120, gapBody, '时间差', [[`+${span.toFixed(2)}s`, gy(span)], ['0', gy(0)], [`−${span.toFixed(2)}s`, gy(-span)]]) +
-    strip(100, speedBody, '车速 km/h', [[`${high}`, sy(high)], [`${(low + high) / 2}`, sy((low + high) / 2)], [`${low}`, sy(low)]]) +
-    strip(50, throttleBody, '油门', [['100%', ty(100)], ['0', ty(0)]]) +
-    strip(28, brakeBody, '制动', [[drivers[0].code, 7.5], [drivers[1].code, 20.5]]);
+    strip(120, gapBody, L('时间差', 'Gap'), [[`+${span.toFixed(2)}s`, gy(span)], ['0', gy(0)], [`−${span.toFixed(2)}s`, gy(-span)]]) +
+    strip(100, speedBody, L('车速 km/h', 'Speed km/h'), [[`${high}`, sy(high)], [`${(low + high) / 2}`, sy((low + high) / 2)], [`${low}`, sy(low)]]) +
+    strip(50, throttleBody, L('油门', 'Throttle'), [['100%', ty(100)], ['0', ty(0)]]) +
+    strip(28, brakeBody, L('制动', 'Brake'), [[drivers[0].code, 7.5], [drivers[1].code, 20.5]]);
   $('traceLegend').innerHTML =
     `<span class="driver-primary">━ ${drivers[0].code}</span><span class="driver-secondary">┄ ${drivers[1].code}</span>` +
-    `<span><i class="swatch behind"></i>${drivers[0].code} 落后</span><span><i class="swatch ahead"></i>${drivers[0].code} 领先</span>`;
+    `<span><i class="swatch behind"></i>${L(`${drivers[0].code} 落后`, `${drivers[0].code} behind`)}</span><span><i class="swatch ahead"></i>${L(`${drivers[0].code} 领先`, `${drivers[0].code} ahead`)}</span>`;
   $('traceSummary').textContent = traceSummary(gap, drivers, state.bends, cuts);
   traceState.count = n;
   traceState.gap = gap;
@@ -129,7 +129,7 @@ function traceCursor(index) {
   const value = traceState.gap[index];
   const drivers = pair();
   $('traceReadout').textContent = `${Math.round(100 * index / traceState.count)}% · ` +
-    (Math.abs(value) < .0005 ? '持平' : `${drivers[value > 0 ? 1 : 0].code} 领先 ${Math.abs(value).toFixed(3)} 秒`);
+    (Math.abs(value) < .0005 ? L('持平', 'Level') : L(`${drivers[value > 0 ? 1 : 0].code} 领先 ${Math.abs(value).toFixed(3)} 秒`, `${drivers[value > 0 ? 1 : 0].code} ahead by ${Math.abs(value).toFixed(3)} s`));
 }
 
 function miniSectors(first, second, drivers, reference) {
@@ -140,9 +140,9 @@ function miniSectors(first, second, drivers, reference) {
   const svg = segments.map(s => {
     const winner = Math.abs(s.change) < .002 ? null : s.change > 0 ? 1 : 0;
     if (winner !== null) wins[winner]++;
-    const who = winner === null ? '持平' : `${drivers[winner].code} 快 ${Math.abs(s.change).toFixed(3)} 秒`;
+    const who = winner === null ? L('持平', 'Even') : L(`${drivers[winner].code} 快 ${Math.abs(s.change).toFixed(3)} 秒`, `${drivers[winner].code} faster by ${Math.abs(s.change).toFixed(3)} s`);
     return `<path class="track-segment mini-segment winner-${winner ?? 'tie'}" data-mini="${Math.round((s.a + s.b) / 2)}"
       d="${path(reference.slice(s.a, s.b + 1))}"><title>${Math.round(100 * s.a / (reference.length - 1))}–${Math.round(100 * s.b / (reference.length - 1))}% · ${who}</title></path>`;
   }).join('');
-  return {svg, caption: `${drivers[0].code} 赢 ${wins[0]} 段，${drivers[1].code} 赢 ${wins[1]} 段`};
+  return {svg, caption: L(`${drivers[0].code} 赢 ${wins[0]} 段，${drivers[1].code} 赢 ${wins[1]} 段`, `${drivers[0].code} wins ${wins[0]} mini-sectors, ${drivers[1].code} ${wins[1]}`)};
 }

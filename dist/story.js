@@ -52,7 +52,7 @@ function renderStory() {
   const pairIds = pair().map(d => d.id);
   // Past races carry only a few selected drivers: no real positions, and the "leader" is the best of them.
   const fullField = history.drivers.length >= 15;
-  $('storyTitle').textContent = fullField ? '比赛进程 · 与领先者的差距' : '比赛进程 · 与精选车手中最快者的差距';
+  $('storyTitle').textContent = fullField ? L('比赛进程 · 与领先者的差距', 'Race story · gap to the leader') : L('比赛进程 · 与精选车手中最快者的差距', 'Race story · gap to the fastest selected driver');
   const n = history.total;
   const x = lap => 40 + (lap - 1) / Math.max(1, n - 1) * 940;
   const y = gap => 14 + Math.min(gap, STORY_CLIP) / STORY_CLIP * 236;
@@ -60,7 +60,7 @@ function renderStory() {
   let grid = '';
   for (const gap of [0, 15, 30, 45, 60]) {
     grid += `<line class="chart-grid" x1="40" x2="980" y1="${y(gap)}" y2="${y(gap)}" stroke-dasharray="3 5"/>
-      <text class="chart-label" x="2" y="${y(gap) + 4}">${gap ? `+${gap}s` : fullField ? '领先' : '最快'}</text>`;
+      <text class="chart-label" x="2" y="${y(gap) + 4}">${gap ? `+${gap}s` : fullField ? L('领先', 'Leader') : L('最快', 'Fastest')}</text>`;
   }
   for (const lap of [1, ...[10, 20, 30, 40, 50, 60, 70].filter(l => l < n - 3), n]) {
     grid += `<text class="chart-label" x="${x(lap)}" y="272" text-anchor="middle">${lap}</text>`;
@@ -77,21 +77,21 @@ function renderStory() {
     return `<g><title>${d.driver.code}</title><path class="${cls}" d="${pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')}"/>${pits}</g>`;
   }).join('');
   $('storyChart').innerHTML = `<svg viewBox="0 0 1000 280" preserveAspectRatio="none" role="img"
-      aria-label="全场车手每圈落后领先者的时间，所选两位车手高亮">
+      aria-label="${L('全场车手每圈落后领先者的时间，所选两位车手高亮', 'Each driver\'s gap to the leader by lap, the selected pair highlighted')}">
     ${neutral}${grid}${lines}<line id="storyCursor" class="chart-cursor" y1="10" y2="254" opacity="0"/></svg>`;
-  $('storyNote').textContent = (fullField ? '' : `本站只收录 ${history.drivers.length} 位精选车手，不显示名次。`) +
-    `灰线为其他车手，圆点为进站，阴影为安全车或虚拟安全车。落后超过 ${STORY_CLIP} 秒的车手贴在底边。` +
-    (history.estimated ? `本站有 ${history.estimated} 圈缺失计时，按同圈全场中位数估算。` : '');
+  $('storyNote').textContent = (fullField ? '' : L(`本站只收录 ${history.drivers.length} 位精选车手，不显示名次。`, `This race holds only ${history.drivers.length} selected drivers, so positions are not shown. `)) +
+    L(`灰线为其他车手，圆点为进站，阴影为安全车或虚拟安全车。落后超过 ${STORY_CLIP} 秒的车手贴在底边。`, `Grey lines are the other drivers, dots are pit stops, shading is a safety car or VSC. Drivers more than ${STORY_CLIP} s behind sit on the bottom edge.`) +
+    (history.estimated ? L(`本站有 ${history.estimated} 圈缺失计时，按同圈全场中位数估算。`, ` ${history.estimated} untimed laps are filled with that lap's field median.`) : '');
   const drivers = pair();
   const describe = lap => {
     const order = positionsAt(history, lap);
-    return `第 ${lap} 圈 · ` + drivers.map(d => {
+    return L(`第 ${lap} 圈 · `, `Lap ${lap} · `) + drivers.map(d => {
       const row = history.drivers.find(h => h.driver.id === d.id);
       const t = row?.clock[lap - 1];
-      if (t == null) return `${d.code} 未完成`;
+      if (t == null) return L(`${d.code} 未完成`, `${d.code} out`);
       const gap = t - history.leader[lap - 1];
       const place = fullField ? `P${order.indexOf(d.id) + 1}` : '';
-      return [d.code, place, gap < .05 ? (fullField ? '领先' : '最快') : `+${gap.toFixed(1)}s`].filter(Boolean).join(' ');
+      return [d.code, place, gap < .05 ? (fullField ? L('领先', 'leads') : L('最快', 'fastest')) : `+${gap.toFixed(1)}s`].filter(Boolean).join(' ');
     }).join(' / ');
   };
   $('storyReadout').textContent = describe(n);
