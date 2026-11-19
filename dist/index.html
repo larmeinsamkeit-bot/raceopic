@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="pitwall.css">
   <script src="replay.js" defer></script>
   <script src="zoom.js" defer></script>
+  <script src="trace.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
@@ -128,6 +129,15 @@
               <div id="bendMetrics"></div>
             </div>
           </div>
+        </div>
+        <div class="trace-block" id="traceBlock">
+          <div class="trace-head">
+            <h3>逐段时间差与操作</h3>
+            <span class="trace-legend" id="traceLegend"></span>
+            <output class="trace-readout" id="traceReadout"></output>
+          </div>
+          <div class="trace-chart" id="traceChart" role="img" aria-label="沿赛道距离的累积时间差、车速、油门与制动"></div>
+          <p class="trace-summary" id="traceSummary" aria-live="polite"></p>
         </div>
         <p id="telemetryNote" class="note"></p>
       </section>

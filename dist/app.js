@@ -259,6 +259,7 @@ function renderTrack() {
   $('telemetryNote').textContent =
     `${state.event.telemetrySource ?? 'OpenF1'} · ${drivers[0].code} / ${drivers[1].code} 定位记录 ${first.positionSamples} / ${second.positionSamples}，车载读取记录 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
   zoomAttach(view, drivers, replaying);
+  drawTrace(first, second, drivers, [min, max]);
   writeUrl();
   if (replaying) {
     setupReplay([first, second], drivers, min, max);
@@ -326,6 +327,7 @@ function setDistance(index) {
   const cursor = 34 + (index - min) / (max - min) * 306;
   $('speedCursor').setAttribute('x1', cursor);
   $('speedCursor').setAttribute('x2', cursor);
+  traceCursor(index);
   $('readout').innerHTML = pair().map((d, i) => {
     const [, , speed, throttle, brake] = samples[i];
     return `<div class="driver-${i ? 'secondary' : 'primary'}"><span>${d.code}</span><strong>${Math.round(speed)} <small>km/h</small></strong><span>油门 ${throttle}% · 制动${brake ? '中' : '未触发'}</span></div>`;

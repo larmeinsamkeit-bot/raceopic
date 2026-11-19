@@ -582,3 +582,38 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .record-table td, .record-table th { white-space: nowrap; }
 .record-table .tyre-chip { width: 22px; height: 22px; font-size: 12px; vertical-align: middle; }
 .record-table tfoot th, .record-table tfoot td { border-top: 1px solid var(--rule-strong); color: var(--petronas); font-weight: 600; }
+
+/* =================== distance-aligned telemetry trace =================== */
+.trace-block { margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--rule); }
+.trace-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; margin-bottom: 12px; }
+.trace-head h3 { font-size: 20px; margin-right: auto; }
+.trace-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 14px var(--num); color: var(--muted); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.swatch.behind, .trace-behind { background: rgba(210, 220, 225, .35); fill: rgba(210, 220, 225, .28); }
+.swatch.ahead, .trace-ahead { background: rgba(0, 224, 196, .45); fill: rgba(0, 224, 196, .3); }
+.trace-readout { min-width: 190px; text-align: right; font: 600 16px var(--num); color: var(--petronas); }
+.trace-chart { display: grid; gap: 6px; touch-action: pan-y; cursor: crosshair; }
+.trace-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.trace-row svg { width: 100%; height: auto; display: block; overflow: visible; }
+.trace-row:nth-child(1) svg { height: 120px; }
+.trace-row:nth-child(2) svg { height: 100px; }
+.trace-row:nth-child(3) svg { height: 50px; }
+.trace-row:nth-child(4) svg { height: 28px; }
+.trace-ticks { position: relative; }
+.trace-ticks small { position: absolute; right: 0; transform: translateY(-50%); font: 12px var(--num); color: var(--muted); white-space: nowrap; }
+.trace-plot { position: relative; min-width: 0; }
+.trace-title { position: absolute; left: 6px; top: 2px; z-index: 1; font-size: 12px; font-weight: 600; color: var(--silver); pointer-events: none;
+  text-shadow: 0 0 4px var(--bg), 0 0 4px var(--bg); }
+.trace-gap { fill: none; stroke: var(--text); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.trace-zero { stroke: var(--rule-strong); vector-effect: non-scaling-stroke; }
+.trace-cut { stroke: var(--rule); stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.trace-focus { fill: rgba(0, 224, 196, .06); }
+.trace-cursor { stroke: var(--petronas); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.trace-brake.brake-0 { fill: var(--petronas); }
+.trace-brake.brake-1 { fill: var(--silver); }
+.trace-row .chart-primary, .trace-row .chart-secondary { stroke-width: 1.5; }
+.trace-summary { margin-top: 14px !important; font-size: 15px; color: var(--silver) !important; max-width: 900px; }
+@media (max-width: 600px) {
+  .trace-row { grid-template-columns: 44px minmax(0, 1fr); gap: 6px; }
+  .trace-readout { min-width: 0; text-align: left; }
+}
