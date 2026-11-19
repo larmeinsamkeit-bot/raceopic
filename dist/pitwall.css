@@ -573,3 +573,12 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .prediction-backtest .backtest-table tbody th { font: 600 17px var(--num); color: var(--text); }
 .prediction-backtest .backtest-table tr.chosen td, .prediction-backtest .backtest-table tr.chosen th { color: var(--petronas); }
 .prediction-backtest .backtest-note { margin: 12px 0 0 !important; font-size: 13px; color: var(--muted); }
+
+/* forecasts: race picker and season record */
+.forecast-picker { margin: 0 0 16px; }
+.forecast-picker[hidden] { display: none; }
+.forecast-record { margin-top: 36px; }
+.forecast-record h3 { font-size: 20px; margin-bottom: 12px; }
+.record-table td, .record-table th { white-space: nowrap; }
+.record-table .tyre-chip { width: 22px; height: 22px; font-size: 12px; vertical-align: middle; }
+.record-table tfoot th, .record-table tfoot td { border-top: 1px solid var(--rule-strong); color: var(--petronas); font-weight: 600; }

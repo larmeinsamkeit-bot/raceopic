@@ -1,0 +1,359 @@
+{
+  "race": {
+    "year": 2026,
+    "circuit": "Lusail",
+    "location": "Lusail",
+    "laps": 57,
+    "session_key": 11428,
+    "date_start": "2026-11-29T16:00:00+00:00"
+  },
+  "created": "2026-11-19T07:39:11+00:00",
+  "method": "Recency-weighted frequencies over full-distance runners in earlier editions; practice data not available yet.",
+  "uses_practice": false,
+  "practice_weight": 0.6,
+  "weight_selection": {
+    "candidates": [
+      0.0,
+      0.3,
+      0.6
+    ],
+    "mean_brier": {
+      "0.0": 1.073,
+      "0.3": 0.715,
+      "0.6": 0.662
+    },
+    "rule": "lowest mean stop-count Brier score across backtests"
+  },
+  "practice": null,
+  "history": [
+    {
+      "year": 2023,
+      "session_key": 9221,
+      "laps": 58,
+      "drivers": 17,
+      "weight": 1
+    },
+    {
+      "year": 2024,
+      "session_key": 9655,
+      "laps": 57,
+      "drivers": 15,
+      "weight": 2
+    },
+    {
+      "year": 2025,
+      "session_key": 9850,
+      "laps": 57,
+      "drivers": 18,
+      "weight": 3
+    }
+  ],
+  "prediction": {
+    "most_likely_stops": 2,
+    "stop_probabilities": {
+      "2": 0.444,
+      "3": 0.412,
+      "4": 0.143
+    },
+    "top_sequences": [
+      {
+        "sequence": "M-M-H",
+        "probability": 0.306
+      },
+      {
+        "sequence": "M-H-H-H",
+        "probability": 0.156
+      },
+      {
+        "sequence": "M-H-H-H-H",
+        "probability": 0.067
+      },
+      {
+        "sequence": "M-M-H-M",
+        "probability": 0.059
+      },
+      {
+        "sequence": "H-M-M",
+        "probability": 0.056
+      }
+    ],
+    "first_stop_window": {
+      "from": 7,
+      "median": 9,
+      "to": 34
+    }
+  },
+  "backtests": [
+    {
+      "target_year": 2024,
+      "trained_on": [
+        2023
+      ],
+      "by_weight": {
+        "0.0": {
+          "drivers": 15,
+          "stop_count_hit_rate": 0.6,
+          "top_sequence_hit_rate": 0.0,
+          "first_stop_in_window": 0.0,
+          "first_stop_mae_laps": 21.73,
+          "stop_count_brier": 0.713,
+          "actual_stop_counts": {
+            "3": 9,
+            "4": 6
+          },
+          "actual_sequences": {
+            "M-H-H-H": 7,
+            "M-H-H-H-H": 3,
+            "M-H-M-M": 2,
+            "M-H-H-H-S": 2,
+            "M-S-S-S-S": 1
+          }
+        },
+        "0.3": {
+          "drivers": 15,
+          "stop_count_hit_rate": 0.6,
+          "top_sequence_hit_rate": 0.0,
+          "first_stop_in_window": 0.0,
+          "first_stop_mae_laps": 15.73,
+          "stop_count_brier": 0.694,
+          "actual_stop_counts": {
+            "3": 9,
+            "4": 6
+          },
+          "actual_sequences": {
+            "M-H-H-H": 7,
+            "M-H-H-H-H": 3,
+            "M-H-M-M": 2,
+            "M-H-H-H-S": 2,
+            "M-S-S-S-S": 1
+          }
+        },
+        "0.6": {
+          "drivers": 15,
+          "stop_count_hit_rate": 0.0,
+          "top_sequence_hit_rate": 0.0,
+          "first_stop_in_window": 0.133,
+          "first_stop_mae_laps": 8.87,
+          "stop_count_brier": 1.0,
+          "actual_stop_counts": {
+            "3": 9,
+            "4": 6
+          },
+          "actual_sequences": {
+            "M-H-H-H": 7,
+            "M-H-H-H-H": 3,
+            "M-H-M-M": 2,
+            "M-H-H-H-S": 2,
+            "M-S-S-S-S": 1
+          }
+        }
+      },
+      "history_only": {
+        "drivers": 15,
+        "stop_count_hit_rate": 0.6,
+        "top_sequence_hit_rate": 0.0,
+        "first_stop_in_window": 0.0,
+        "first_stop_mae_laps": 21.73,
+        "stop_count_brier": 0.713,
+        "actual_stop_counts": {
+          "3": 9,
+          "4": 6
+        },
+        "actual_sequences": {
+          "M-H-H-H": 7,
+          "M-H-H-H-H": 3,
+          "M-H-M-M": 2,
+          "M-H-H-H-S": 2,
+          "M-S-S-S-S": 1
+        }
+      },
+      "with_practice": {
+        "drivers": 15,
+        "stop_count_hit_rate": 0.0,
+        "top_sequence_hit_rate": 0.0,
+        "first_stop_in_window": 0.133,
+        "first_stop_mae_laps": 8.87,
+        "stop_count_brier": 1.0,
+        "actual_stop_counts": {
+          "3": 9,
+          "4": 6
+        },
+        "actual_sequences": {
+          "M-H-H-H": 7,
+          "M-H-H-H-H": 3,
+          "M-H-M-M": 2,
+          "M-H-H-H-S": 2,
+          "M-S-S-S-S": 1
+        }
+      }
+    },
+    {
+      "target_year": 2025,
+      "trained_on": [
+        2023,
+        2024
+      ],
+      "by_weight": {
+        "0.0": {
+          "drivers": 18,
+          "stop_count_hit_rate": 0.111,
+          "top_sequence_hit_rate": 0.0,
+          "first_stop_in_window": 0.111,
+          "first_stop_mae_laps": 25.0,
+          "stop_count_brier": 1.433,
+          "actual_stop_counts": {
+            "2": 16,
+            "3": 2
+          },
+          "actual_sequences": {
+            "M-M-H": 11,
+            "H-M-M": 2,
+            "M-M-S": 1,
+            "M-H-M": 1,
+            "M-M-M-S": 1
+          }
+        },
+        "0.3": {
+          "drivers": 18,
+          "stop_count_hit_rate": 0.111,
+          "top_sequence_hit_rate": 0.0,
+          "first_stop_in_window": 0.111,
+          "first_stop_mae_laps": 22.0,
+          "stop_count_brier": 0.736,
+          "actual_stop_counts": {
+            "2": 16,
+            "3": 2
+          },
+          "actual_sequences": {
+            "M-M-H": 11,
+            "H-M-M": 2,
+            "M-M-S": 1,
+            "M-H-M": 1,
+            "M-M-M-S": 1
+          }
+        },
+        "0.6": {
+          "drivers": 18,
+          "stop_count_hit_rate": 0.889,
+          "top_sequence_hit_rate": 0.0,
+          "first_stop_in_window": 0.111,
+          "first_stop_mae_laps": 20.0,
+          "stop_count_brier": 0.325,
+          "actual_stop_counts": {
+            "2": 16,
+            "3": 2
+          },
+          "actual_sequences": {
+            "M-M-H": 11,
+            "H-M-M": 2,
+            "M-M-S": 1,
+            "M-H-M": 1,
+            "M-M-M-S": 1
+          }
+        }
+      },
+      "history_only": {
+        "drivers": 18,
+        "stop_count_hit_rate": 0.111,
+        "top_sequence_hit_rate": 0.0,
+        "first_stop_in_window": 0.111,
+        "first_stop_mae_laps": 25.0,
+        "stop_count_brier": 1.433,
+        "actual_stop_counts": {
+          "2": 16,
+          "3": 2
+        },
+        "actual_sequences": {
+          "M-M-H": 11,
+          "H-M-M": 2,
+          "M-M-S": 1,
+          "M-H-M": 1,
+          "M-M-M-S": 1
+        }
+      },
+      "with_practice": {
+        "drivers": 18,
+        "stop_count_hit_rate": 0.889,
+        "top_sequence_hit_rate": 0.0,
+        "first_stop_in_window": 0.111,
+        "first_stop_mae_laps": 20.0,
+        "stop_count_brier": 0.325,
+        "actual_stop_counts": {
+          "2": 16,
+          "3": 2
+        },
+        "actual_sequences": {
+          "M-M-H": 11,
+          "H-M-M": 2,
+          "M-M-S": 1,
+          "M-H-M": 1,
+          "M-M-M-S": 1
+        }
+      }
+    }
+  ],
+  "baseline_backtest": {
+    "target_year": 2025,
+    "trained_on": [
+      2023,
+      2024
+    ],
+    "score": {
+      "drivers": 18,
+      "stop_count_hit_rate": 0.111,
+      "top_sequence_hit_rate": 0.0,
+      "first_stop_in_window": 0.111,
+      "first_stop_mae_laps": 25.0,
+      "stop_count_brier": 1.433,
+      "actual_stop_counts": {
+        "2": 16,
+        "3": 2
+      },
+      "actual_sequences": {
+        "M-M-H": 11,
+        "H-M-M": 2,
+        "M-M-S": 1,
+        "M-H-M": 1,
+        "M-M-M-S": 1
+      }
+    }
+  },
+  "practice_backtest": {
+    "target_year": 2025,
+    "trained_on": [
+      2023,
+      2024
+    ],
+    "score": {
+      "drivers": 18,
+      "stop_count_hit_rate": 0.889,
+      "top_sequence_hit_rate": 0.0,
+      "first_stop_in_window": 0.111,
+      "first_stop_mae_laps": 20.0,
+      "stop_count_brier": 0.325,
+      "actual_stop_counts": {
+        "2": 16,
+        "3": 2
+      },
+      "actual_sequences": {
+        "M-M-H": 11,
+        "H-M-M": 2,
+        "M-M-S": 1,
+        "M-H-M": 1,
+        "M-M-M-S": 1
+      }
+    }
+  },
+  "caveats": [
+    "Earlier editions ran under different technical rules and tyre allocations.",
+    "Safety cars and red flags are not modelled; they move stop laps.",
+    "Pit loss uses the median pit-lane time of the previous edition.",
+    "Las Vegas track evolution is strong: practice long runs often get faster with tyre age, so degradation is floored and the simulation mostly weighs pit loss against tyre life.",
+    "Only a few editions can be backtested; the chosen weight is a small-sample choice.",
+    "Qatar 2023 had an 18-lap tyre limit and 2025 a maximum stint length set for safety, both of which forced extra stops; the history prior leans towards more stops."
+  ],
+  "notes_zh": [
+    "卡塔尔 2023 年因轮胎安全限制每套胎最多 18 圈，2025 年也设有单套胎圈数上限，两者都迫使车队多停站，因此历史数据偏向更多停站。"
+  ],
+  "result": null
+}
