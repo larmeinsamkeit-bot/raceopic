@@ -113,7 +113,20 @@ function selectedTelemetry() {
 }
 
 function path(points, x = p => p[0], y = p => p[1]) {
-  return points.map((p, i) => `${i ? 'L' : 'M'}${x(p).toFixed(2)} ${y(p).toFixed(2)}`).join(' ');
+  // Catmull-Rom through the samples, so corners stay round when the map is zoomed in.
+  const q = points.map(p => [x(p), y(p)]);
+  if (q.length < 3) return q.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' ');
+  const f = n => n.toFixed(2);
+  let d = `M${f(q[0][0])} ${f(q[0][1])}`;
+  for (let i = 0; i < q.length - 1; i++) {
+    const p0 = q[Math.max(0, i - 1)];
+    const p1 = q[i];
+    const p2 = q[i + 1];
+    const p3 = q[Math.min(q.length - 1, i + 2)];
+    d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ` +
+      `${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+  }
+  return d;
 }
 
 function activeBounds() {
@@ -197,9 +210,9 @@ function renderTrack() {
       focusReplayBend(state.bend === bend ? null : bend);
     };
   });
-  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。点击编号放大弯区；双指或 Ctrl/⌘ + 滚轮缩放，放大后可拖动。' : state.mode === 'dominance'
-    ? '颜色显示该段用时更短的车手。点击赛段放大；双指或 Ctrl/⌘ + 滚轮缩放。'
-    : '青绿实线与银灰虚线为定位采样轨迹。用赛段卡片放大。';
+  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。在赛道任意位置滚动、双指或双击即可放大，放大后可拖动；点击编号查看弯区。' : state.mode === 'dominance'
+    ? '颜色显示该段用时更短的车手。在赛道任意位置滚动、双指或双击即可放大；点击赛段聚焦该段。'
+    : '青绿实线与银灰虚线为定位采样轨迹。在赛道任意位置滚动、双指或双击即可放大比较走线。';
   $('telemetryNote').textContent =
     `${state.event.telemetrySource ?? 'OpenF1'} · ${drivers[0].code} / ${drivers[1].code} 定位记录 ${first.positionSamples} / ${second.positionSamples}，车载读取记录 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
   zoomAttach(view, drivers, replaying);
