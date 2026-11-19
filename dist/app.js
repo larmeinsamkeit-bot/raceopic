@@ -14,7 +14,7 @@ const seasonLab = new Map();
 const pastIndex = new Map();
 let eventRequest = 0;
 // Comparison state shared through the address bar: race, drivers, qualifying laps and map mode.
-const MODE_PARAM = {dominance: 'dominance', lines: 'lines', replayMode: 'replay'};
+const MODE_PARAM = {dominance: 'dominance', miniMode: 'mini', lines: 'lines', replayMode: 'replay'};
 let pendingUrl = new URLSearchParams(location.search);
 
 function writeUrl() {
@@ -233,9 +233,11 @@ function renderTrack() {
     return `<g transform="translate(${x} ${y})"><g class="glyph" data-s="1"><circle class="track-gate" r="8"/><text class="track-gate-label" x="14" y="-14">${i ? 'S' + (i + 1) : '起终点'}</text></g></g>`;
   }).join('');
   const glyphScale = Math.max(view[2], view[3]) / 900;
+  const mini = state.mode === 'miniMode' ? miniSectors(first, second, drivers, reference) : null;
   const overlay = replaying ? replayMap([first, second], drivers, reference, min, max, glyphScale) :
-    state.mode === 'dominance' ? dominance : raceLines;
-  const trackLabel = replaying ? '双车遥测动画' : state.mode === 'dominance' ? '按分段计时优势着色' : '双车行车线';
+    state.mode === 'dominance' ? dominance : mini ? mini.svg : raceLines;
+  const trackLabel = replaying ? '双车遥测动画' : state.mode === 'dominance' ? '按分段计时优势着色'
+    : mini ? `${TRACE_SEGMENTS} 个迷你分段的优势` : '双车行车线';
   const cursors = replaying ? '' : `<circle id="trackCursorA" class="track-marker marker-a" r="9"/>
     <circle id="trackCursorB" class="track-marker marker-b" r="9"/>`;
   $('trackMap').innerHTML = `<svg viewBox="${view.join(' ')}" role="img" aria-label="赛道图，${trackLabel}">
@@ -247,13 +249,18 @@ function renderTrack() {
       focusSector(state.sector === sector ? null : sector);
     });
   });
+  $('trackMap').querySelectorAll('[data-mini]').forEach(segment => {
+    segment.addEventListener('click', () => setDistance(Number(segment.dataset.mini)));
+  });
   $('trackMap').querySelectorAll('[data-bend]').forEach(pin => {
     pin.onclick = () => {
       const bend = Number(pin.dataset.bend);
       focusReplayBend(state.bend === bend ? null : bend);
     };
   });
-  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。在赛道任意位置滚动、双指或双击即可放大，放大后可拖动；点击编号查看弯区。' : state.mode === 'dominance'
+  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。在赛道任意位置滚动、双指或双击即可放大，放大后可拖动；点击编号查看弯区。' : mini
+    ? `${mini.caption}。悬停查看每段差距，点击跳到该位置；灰色为差距不到 0.002 秒。`
+    : state.mode === 'dominance'
     ? '颜色显示该段用时更短的车手。在赛道任意位置滚动、双指或双击即可放大；点击赛段聚焦该段。'
     : '青绿实线与银灰虚线为定位采样轨迹。在赛道任意位置滚动、双指或双击即可放大比较走线。';
   $('telemetryNote').textContent =
@@ -562,7 +569,7 @@ async function init() {
         changePair();
       };
     }
-    const modes = ['dominance', 'lines', 'replayMode'];
+    const modes = Object.keys(MODE_PARAM);
     for (const mode of modes) {
       $(mode).onclick = () => {
         if (state.mode === mode) return;

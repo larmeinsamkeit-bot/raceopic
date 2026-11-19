@@ -617,3 +617,6 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
   .trace-row { grid-template-columns: 44px minmax(0, 1fr); gap: 6px; }
   .trace-readout { min-width: 0; text-align: left; }
 }
+.pw .mini-segment { stroke-width: 8; stroke-linecap: butt; }
+.pw .mini-segment:hover { stroke-width: 12; }
+@media (max-width: 600px) { .segmented button { padding: 0 6px; font-size: 13px; } }

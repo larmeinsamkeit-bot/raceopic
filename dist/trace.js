@@ -131,3 +131,18 @@ function traceCursor(index) {
   $('traceReadout').textContent = `${Math.round(100 * index / traceState.count)}% · ` +
     (Math.abs(value) < .0005 ? '持平' : `${drivers[value > 0 ? 1 : 0].code} 领先 ${Math.abs(value).toFixed(3)} 秒`);
 }
+
+function miniSectors(first, second, drivers, reference) {
+  // The lap cut into equal mini-sectors on the map, each coloured by who gained time there.
+  const {cuts} = state.event.telemetry;
+  const segments = traceSegments(traceGap(first, second), state.bends, cuts);
+  const wins = [0, 0];
+  const svg = segments.map(s => {
+    const winner = Math.abs(s.change) < .002 ? null : s.change > 0 ? 1 : 0;
+    if (winner !== null) wins[winner]++;
+    const who = winner === null ? '持平' : `${drivers[winner].code} 快 ${Math.abs(s.change).toFixed(3)} 秒`;
+    return `<path class="track-segment mini-segment winner-${winner ?? 'tie'}" data-mini="${Math.round((s.a + s.b) / 2)}"
+      d="${path(reference.slice(s.a, s.b + 1))}"><title>${Math.round(100 * s.a / (reference.length - 1))}–${Math.round(100 * s.b / (reference.length - 1))}% · ${who}</title></path>`;
+  }).join('');
+  return {svg, caption: `${drivers[0].code} 赢 ${wins[0]} 段，${drivers[1].code} 赢 ${wins[1]} 段`};
+}
