@@ -620,3 +620,15 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .pw .mini-segment { stroke-width: 8; stroke-linecap: butt; }
 .pw .mini-segment:hover { stroke-width: 12; }
 @media (max-width: 600px) { .segmented button { padding: 0 6px; font-size: 13px; } }
+
+/* race story */
+.story-block { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--rule); }
+.story-chart { height: 300px; touch-action: pan-y; cursor: crosshair; }
+.story-chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.story-field { fill: none; stroke: #4a5458; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.story-pair { stroke-width: 2.5 !important; }
+.story-neutral { fill: rgba(230, 202, 102, .1); }
+.story-pit { fill: #6b767a; }
+.story-pit.pit-0 { fill: var(--petronas); stroke: var(--bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.story-pit.pit-1 { fill: var(--silver); stroke: var(--bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+@media (max-width: 600px) { .story-chart { height: 240px; } }

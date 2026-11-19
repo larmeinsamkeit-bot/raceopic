@@ -13,6 +13,7 @@
   <script src="replay.js" defer></script>
   <script src="zoom.js" defer></script>
   <script src="trace.js" defer></script>
+  <script src="story.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
@@ -158,6 +159,11 @@
         </div>
         <div id="tooltip" class="tooltip" aria-live="polite">在图上移动或轻触，查看单圈数据。</div>
         <p class="note" id="stintNote"></p>
+        <div class="story-block">
+          <div class="trace-head"><h3 id="storyTitle">比赛进程 · 与领先者的差距</h3><output class="trace-readout" id="storyReadout"></output></div>
+          <div id="storyChart" class="story-chart"></div>
+          <p class="note" id="storyNote"></p>
+        </div>
       </section>
 
       <section class="chapter strategy" id="strategy" aria-labelledby="stratTitle">
