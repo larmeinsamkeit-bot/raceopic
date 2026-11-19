@@ -8,12 +8,15 @@
 
 ## What it does
 
-- **Track map with three views.** Sector advantage coloured by who was faster, both drivers' racing lines, and a synchronized two-car replay of their qualifying laps.
+- **Track map with four views.** Sector advantage, 24 mini-sectors coloured by who gained time, both drivers' racing lines, and a synchronised two-car replay of their qualifying laps.
+- **Where the gap is made.** A distance-aligned trace of the two qualifying laps: cumulative time gap (integrated from car speed and scaled to the official lap times, so it ends on the real difference), speed, throttle and brake, plus a summary of the stretches where most time changed hands.
 - **Zoom anywhere on the circuit.** Scroll or pinch over any corner to zoom in there, drag to pan, double-click to dive in, and let the camera follow a car during the replay. A minimap shows where you are.
-- **Race pace on one lap axis.** Lap times, a per-lap delta strip ("faster on N laps") and tyre stints share the same x axis, with outlier laps (starts, pit laps, safety cars) excluded by default.
+- **Race pace on one lap axis.** Lap times, a per-lap delta strip ("faster on N laps"), track and air temperature with rain laps, and tyre stints share the same x axis, with outlier laps (starts, pit laps, safety cars) excluded by default.
+- **Race story and tyre wear.** Every driver's gap to the leader lap by lap with pit stops and safety cars, and each stint's fuel-corrected lap time against tyre age with a fitted degradation slope.
 - **Pit-stop what-if.** A dry-race model fitted on the whole field estimates what moving one stop would have cost or gained.
 - **Shareable comparisons.** The URL carries race, drivers, qualifying laps and view, e.g. [`?race=brazil&a=VER&b=NOR&mode=replay`](https://larmeinsamkeit-bot.github.io/raceopic/?race=brazil&a=VER&b=NOR&mode=replay).
-- **2026 season.** Calendar, driver and constructor standings after every round, classifications, and per-round OpenF1 race archives.
+- **2026 season.** Calendar, driver and constructor standings after every round, a teammate head-to-head (qualifying and race-pace gap in every round), classifications, and per-round OpenF1 race archives.
+- **English and Chinese.** The interface follows the browser language; the EN / 中文 button switches and remembers it.
 
 ![Replay zoomed in and following a car through Monaco](docs/replay.gif)
 
@@ -35,7 +38,17 @@ The blend weight is not hand-picked: the script backtests each earlier edition a
 | 2025 | history only | 17.6% | 5.9% | 11.1 laps | 1.067 |
 | 2025 | history + 30% practice | 17.6% | 23.5% | 9.0 laps | 0.589 |
 
-Honest reading: two editions are not enough to claim the practice model is better — it helps 2025 (a one-stop race) and hurts 2024 (a two-stop race). Las Vegas has strong track evolution, so practice long runs often get *faster* with tyre age and degradation is hard to measure. The [2026 Las Vegas forecast](dist/predictions/2026-las-vegas.json) and every backtest row are shown on the season page, and the result will be added after the race on 22 November.
+Honest reading: two editions are not enough to claim the practice model is better — it helps 2025 (a one-stop race) and hurts 2024 (a two-stop race). Las Vegas has strong track evolution, so practice long runs often get *faster* with tyre age and degradation is hard to measure.
+
+The same backtest picks a different weight per circuit, so the practice model is only used where it has earned it:
+
+| Race (2026) | Start | Practice weight | Mean Brier: history only → chosen | Forecast |
+|---|---|---:|---:|---|
+| [Las Vegas](dist/predictions/2026-las-vegas.json) | 22 Nov | 30% | 0.765 → 0.660 | 1 stop (49.5%), M→H |
+| [Qatar](dist/predictions/2026-qatar.json) | 29 Nov | 60% | 1.073 → 0.662 | 2 stops (44.4%), M→M→H |
+| [Abu Dhabi](dist/predictions/2026-abu-dhabi.json) | 6 Dec | 0% | 0.823 (history only) | 1 stop (56.6%), M→H |
+
+Each forecast is regenerated once that weekend's practice has run and committed before the race; the season page keeps a record table that fills in as races are scored. Qatar's history is distorted by tyre-life limits imposed for safety in 2023 and 2025, which forced extra stops.
 
 ![Forecast panel with the backtest table](docs/forecast.png)
 
@@ -71,6 +84,8 @@ python3 -B data-tools/pull_openf1.py --cache /tmp/raceopic-archive
 python3 -B data-tools/build_dataset.py /tmp/raceopic-archive dist/past
 python3 -B data-tools/pull_season.py --cache /tmp/raceopic-2026 --output dist all
 python3 -B data-tools/build_season_lab.py --cache /tmp/raceopic-season-lab --dist dist
+python3 -B data-tools/add_weather.py --dist dist --cache /tmp/raceopic-weather
+python3 -B data-tools/build_teammates.py dist
 ```
 
 `build_dataset.py` keeps past races already in `dist/past/` when their downloads are not in the cache, so one race can be added on its own. `build_season_lab.py --laps N` sets how many qualifying laps to keep per driver.
@@ -78,7 +93,9 @@ python3 -B data-tools/build_season_lab.py --cache /tmp/raceopic-season-lab --dis
 Strategy forecast (run `predict` before the race, `evaluate` after it):
 
 ```sh
-python3 -B data-tools/predict_strategy.py predict --cache /tmp/raceopic-predict --output dist/predictions/2026-las-vegas.json
+python3 -B data-tools/predict_strategy.py predict --circuit "Las Vegas" --laps 50 --cache /tmp/raceopic-predict --output dist/predictions/2026-las-vegas.json
+python3 -B data-tools/predict_strategy.py predict --circuit Lusail --laps 57 --cache /tmp/raceopic-predict --output dist/predictions/2026-qatar.json
+python3 -B data-tools/predict_strategy.py predict --circuit "Yas Marina Circuit" --laps 58 --cache /tmp/raceopic-predict --output dist/predictions/2026-abu-dhabi.json
 python3 -B data-tools/predict_strategy.py evaluate --cache /tmp/raceopic-predict --output dist/predictions/2026-las-vegas.json
 ```
 
@@ -100,11 +117,15 @@ Raceopic 是一个 F1 数据分析网站，回答一个问题：**两位车手�
 
 **网站：https://larmeinsamkeit-bot.github.io/raceopic/**
 
-- **赛道图**：分段优势、行车线、双车同步回放。可在赛道任意位置滚动、双指或双击放大，拖动平移，回放时镜头可跟随车手，并有小地图显示当前位置。
-- **正赛节奏**：圈速、每圈差值与轮胎时间线共用同一条圈数轴，默认排除发车圈、进出站圈和安全车圈。
+- **赛道图**：分段优势、24 个迷你分段、行车线、双车同步回放。可在赛道任意位置滚动、双指或双击放大，拖动平移，回放时镜头可跟随车手，并有小地图显示当前位置。
+- **时间差曲线**：两圈排位沿赛道距离对齐的累积时间差（由车速积分并按官方圈速缩放）、车速、油门与制动，并自动指出差距最大的路段。
+- **正赛节奏**：圈速、每圈差值、赛道温度与降雨、轮胎时间线共用同一条圈数轴，默认排除发车圈、进出站圈和安全车圈。
+- **比赛进程与轮胎衰退**：全场每圈与领先者的差距（标出进站与安全车），以及各段轮胎修正燃油后的圈速与胎龄、衰退斜率。
 - **进站情景**：用全场数据拟合的干地模型，估算换一圈进站的得失。
 - **可分享链接**：网址会记录赛事、车手、排位圈和模式。
-- **2026 赛季**：赛历、每轮后的车手与车队积分、分类成绩与各站 OpenF1 正赛档案。
+- **2026 赛季**：赛历、每轮后的车手与车队积分、整季队友对决、分类成绩与各站 OpenF1 正赛档案。
+- **中英文界面**：默认跟随浏览器语言，可用 EN / 中文 按钮切换并记住选择。
+- **三站赛前预测**：拉斯维加斯、卡塔尔、阿布扎比，练习赛模型的占比按每条赛道的回测分别决定（30%、60%、0%）。
 
 ### 赛前策略预测
 
