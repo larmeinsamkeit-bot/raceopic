@@ -543,3 +543,33 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .pw .track-map svg { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .pw .track-map svg.zoomed { touch-action: none; cursor: grab; }
 .pw .track-map svg.zoomed:active { cursor: grabbing; }
+
+/* map-style zoom: minimap and focus */
+.pw .track-map { position: relative; }
+.pw .track-map svg:focus-visible { outline: 2px solid var(--petronas); outline-offset: 4px; border-radius: 8px; }
+.pw .track-map svg.minimap {
+  position: absolute; right: 8px; bottom: 8px;
+  width: 132px; height: 132px; min-height: 0;
+  padding: 6px;
+  border: 1px solid var(--rule-strong); border-radius: 10px;
+  background: rgba(9, 11, 12, .88);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+  cursor: pointer;
+}
+.pw .track-map svg.minimap.visible { opacity: 1; pointer-events: auto; }
+.minimap-road { fill: none; stroke: #5c676b; stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.minimap-view { fill: rgba(0, 224, 196, .14); stroke: var(--petronas); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+@media (max-width: 600px) { .pw .track-map svg.minimap { width: 96px; height: 96px; } }
+@media (prefers-reduced-motion: reduce) { .minimap { transition: none; } }
+
+.export.ghost { border-color: var(--rule-strong); color: var(--silver); }
+.export.ghost:hover { background: var(--panel); color: var(--text); }
+@media (max-width: 960px) { .deck .export.ghost { grid-column: 1 / -1; justify-self: start; padding: 0 24px; } }
+
+/* forecast backtest table */
+.prediction-backtest p { margin: 0 0 12px !important; color: var(--silver); }
+.prediction-backtest .backtest-table { margin-top: 4px; font-size: 14px; }
+.prediction-backtest .backtest-table tbody th { font: 600 17px var(--num); color: var(--text); }
+.prediction-backtest .backtest-table tr.chosen td, .prediction-backtest .backtest-table tr.chosen th { color: var(--petronas); }
+.prediction-backtest .backtest-note { margin: 12px 0 0 !important; font-size: 13px; color: var(--muted); }

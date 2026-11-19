@@ -61,6 +61,15 @@ function sampleAtTime(samples, elapsed, min, max) {
   const b = samples[Math.min(low + 1, max)];
   const fraction = b[5] > a[5] ? clamp((elapsed - a[5]) / (b[5] - a[5]), 0, 1) : 0;
   const interpolated = a.slice(0, 4).map((value, i) => value + fraction * (b[i] - value));
+  // Position follows the same Catmull-Rom curve the route is drawn with, so the car stays on the line when zoomed.
+  const p0 = samples[Math.max(min, low - 1)];
+  const p3 = samples[Math.min(max, low + 2)];
+  const t = fraction;
+  for (const axis of [0, 1]) {
+    interpolated[axis] = .5 * (2 * a[axis] + (-p0[axis] + b[axis]) * t
+      + (2 * p0[axis] - 5 * a[axis] + 4 * b[axis] - p3[axis]) * t * t
+      + (-p0[axis] + 3 * a[axis] - 3 * b[axis] + p3[axis]) * t * t * t);
+  }
   return {index: low, point: interpolated, brake: (fraction < .5 ? a : b)[4]};
 }
 

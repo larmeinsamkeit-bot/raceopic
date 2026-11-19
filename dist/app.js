@@ -11,7 +11,41 @@ const tyres = {
 const state = {event: null, mode: 'dominance', sector: null, bend: null, bends: [], at: 0, stops: []};
 const events = new Map();
 const seasonLab = new Map();
+const pastIndex = new Map();
 let eventRequest = 0;
+// Comparison state shared through the address bar: race, drivers, qualifying laps and map mode.
+const MODE_PARAM = {dominance: 'dominance', lines: 'lines', replayMode: 'replay'};
+let pendingUrl = new URLSearchParams(location.search);
+
+function writeUrl() {
+  if (pendingUrl || !state.event) return;
+  const drivers = pair();
+  const query = new URLSearchParams({race: state.event.id, a: drivers[0].code, b: drivers[1].code});
+  for (const [index, key] of ['qa', 'qb'].entries()) {
+    const lap = selectedTelemetry()[index];
+    if (lap && $(index ? 'qualiB' : 'qualiA').selectedIndex > 0) query.set(key, lap.lap);
+  }
+  if (state.mode !== 'dominance') query.set('mode', MODE_PARAM[state.mode]);
+  history.replaceState(null, '', `${location.pathname}?${query}${location.hash}`);
+}
+
+function restoreDrivers() {
+  if (!pendingUrl) return;
+  const byCode = code => state.event.drivers.find(d => d.code === code?.toUpperCase());
+  const [a, b] = [byCode(pendingUrl.get('a')), byCode(pendingUrl.get('b'))];
+  if (a) $('driverA').value = a.id;
+  if (b && (!a || b.id !== a.id)) $('driverB').value = b.id;
+}
+
+function restoreLaps() {
+  if (!pendingUrl) return;
+  for (const [index, key] of ['qa', 'qb'].entries()) {
+    const lap = Number(pendingUrl.get(key));
+    const laps = state.event.telemetry.laps[pair()[index].id] || [];
+    const at = laps.findIndex(row => row.lap === lap);
+    if (at >= 0) $(index ? 'qualiB' : 'qualiA').value = at;
+  }
+}
 
 async function readEventData(url) {
   const response = await fetch(url, {signal: AbortSignal.timeout(15000)});
@@ -51,8 +85,11 @@ async function setEvent() {
   for (const field of ['driverA', 'driverB', 'export']) $(field).disabled = true;
   try {
     if (!events.has(id)) {
-      const round = seasonLab.get(id).round;
-      const event = await readEventData(`lab-2026/r${String(round).padStart(2, '0')}.json?v=season-lab`);
+      // Every race is fetched only when picked; the page itself loads two small indexes.
+      const url = seasonLab.has(id)
+        ? `lab-2026/r${String(seasonLab.get(id).round).padStart(2, '0')}.json?v=season-lab`
+        : `past/${encodeURIComponent(id)}.json?v=past`;
+      const event = await readEventData(url);
       if (event.id !== id) throw new Error('Race data does not match the requested event');
       events.set(id, event);
     }
@@ -78,12 +115,17 @@ function renderEvent() {
   const trackDrivers = state.event.drivers.filter(hasTelemetry);
   const paceDrivers = state.event.drivers.filter(driver => !hasTelemetry(driver));
   const driverOption = d => option(d.id, `${d.code} · ${d.surname}${d.laps.length ? '' : '（仅排位）'}`);
+  // Default to the first two drivers with telemetry who ran most of the race, so a pair always compares.
+  const ranFar = d => d.laps.length >= .9 * state.event.totalLaps;
+  const defaults = [...trackDrivers.filter(ranFar), ...trackDrivers.filter(d => !ranFar(d))].slice(0, 2);
   for (const [index, id] of ['driverA', 'driverB'].entries()) {
     const groups = [optionGroup('有排位遥测', trackDrivers.map(driverOption))];
     if (paceDrivers.length) groups.push(optionGroup('仅正赛数据', paceDrivers.map(driverOption)));
     $(id).replaceChildren(...groups);
-    $(id).selectedIndex = index;
+    if (defaults[index]) $(id).value = defaults[index].id;
+    else $(id).selectedIndex = index;
   }
+  restoreDrivers();
   $('coverage').textContent = `正赛 ${state.event.sourceLaps.toLocaleString()} 条 · 遥测 ${trackDrivers.length}/${state.event.drivers.length} 位`;
   $('circuit').textContent = state.event.circuit;
   changePair();
@@ -99,6 +141,7 @@ function changePair() {
       option(i, `第 ${lap.lap} 圈 · ${lapTime(lap.time)}`)));
     $(`quali${suffix}`).disabled = !laps.length;
   }
+  restoreLaps();
   state.sector = null;
   state.bend = null;
   state.at = 0;
@@ -113,7 +156,20 @@ function selectedTelemetry() {
 }
 
 function path(points, x = p => p[0], y = p => p[1]) {
-  return points.map((p, i) => `${i ? 'L' : 'M'}${x(p).toFixed(2)} ${y(p).toFixed(2)}`).join(' ');
+  // Catmull-Rom through the samples, so corners stay round when the map is zoomed in.
+  const q = points.map(p => [x(p), y(p)]);
+  if (q.length < 3) return q.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' ');
+  const f = n => n.toFixed(2);
+  let d = `M${f(q[0][0])} ${f(q[0][1])}`;
+  for (let i = 0; i < q.length - 1; i++) {
+    const p0 = q[Math.max(0, i - 1)];
+    const p1 = q[i];
+    const p2 = q[i + 1];
+    const p3 = q[Math.min(q.length - 1, i + 2)];
+    d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ` +
+      `${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+  }
+  return d;
 }
 
 function activeBounds() {
@@ -197,12 +253,13 @@ function renderTrack() {
       focusReplayBend(state.bend === bend ? null : bend);
     };
   });
-  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。点击编号放大弯区；双指或 Ctrl/⌘ + 滚轮缩放，放大后可拖动。' : state.mode === 'dominance'
-    ? '颜色显示该段用时更短的车手。点击赛段放大；双指或 Ctrl/⌘ + 滚轮缩放。'
-    : '青绿实线与银灰虚线为定位采样轨迹。用赛段卡片放大。';
+  $('mapHint').textContent = replaying ? '两圈从同一计时起点开始。在赛道任意位置滚动、双指或双击即可放大，放大后可拖动；点击编号查看弯区。' : state.mode === 'dominance'
+    ? '颜色显示该段用时更短的车手。在赛道任意位置滚动、双指或双击即可放大；点击赛段聚焦该段。'
+    : '青绿实线与银灰虚线为定位采样轨迹。在赛道任意位置滚动、双指或双击即可放大比较走线。';
   $('telemetryNote').textContent =
     `${state.event.telemetrySource ?? 'OpenF1'} · ${drivers[0].code} / ${drivers[1].code} 定位记录 ${first.positionSamples} / ${second.positionSamples}，车载读取记录 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
   zoomAttach(view, drivers, replaying);
+  writeUrl();
   if (replaying) {
     setupReplay([first, second], drivers, min, max);
     return;
@@ -275,6 +332,18 @@ function setDistance(index) {
   }).join('');
 }
 
+function noPairReason(drivers, rows) {
+  // Say why nothing could be paired, and what to try instead.
+  const total = state.event.totalLaps;
+  const missing = drivers.find(d => !d.laps.length);
+  if (missing) return `${missing.code} 没有正赛圈速记录，请换一位车手`;
+  const short = drivers.find(d => d.laps.length < .5 * total);
+  if (short) return `${short.code} 只完成 ${short.laps.length} / ${total} 圈，可能提前退赛，请换一位车手`;
+  if ($('sameTyre').checked) return '两人没有使用相同配方的同一圈，取消「仅比较相同配方」即可';
+  if ($('clean').checked && rows.every(list => list.length)) return '两人的有效圈没有重叠，取消「排除异常圈」可查看全部';
+  return '这组车手没有可配对的圈，请换一位车手';
+}
+
 function renderPace() {
   const drivers = pair();
   const rows = drivers.map(d => d.laps.filter(r => r.time != null && (!$('clean').checked || !r.excluded)));
@@ -289,7 +358,7 @@ function renderPace() {
   $('fastestDriver').textContent = best ? `${best.code} · 第 ${best.lap} 圈` : '无样本';
   const middle = quantile(matches, .5);
   $('gap').textContent = middle === null ? '—' : `${signed(middle)} s`;
-  $('gapDriver').textContent = middle === null ? '没有满足条件的配对圈' :
+  $('gapDriver').textContent = middle === null ? noPairReason(drivers, rows) :
     Math.abs(middle) < .0005 ? '两位车手接近' : `${drivers[middle < 0 ? 0 : 1].code} 的配对圈较快`;
   $('spread').textContent = matches.length ? `${signed(quantile(matches, .25), 2)} ～ ${signed(quantile(matches, .75), 2)} s` : '—';
   $('samples').textContent = matches.length;
@@ -462,20 +531,28 @@ function exportCsv() {
 async function init() {
   try {
     const [season, legacy] = await Promise.all([
-      readEventData('lab-2026/index.json?v=season-lab'), readEventData('events.json?v=replay'),
+      readEventData('lab-2026/index.json?v=season-lab'), readEventData('past/index.json?v=past'),
     ]);
     const current = season.sort((a, b) => b.round - a.round);
     current.forEach(entry => seasonLab.set(entry.id, entry));
     const past = legacy.filter(event => event.year < 2026).sort((a, b) => b.raceKey - a.raceKey);
-    past.forEach(event => events.set(event.id, event));
+    past.forEach(event => pastIndex.set(event.id, event));
     $('race').replaceChildren(
       optionGroup('2026 赛季 · 已完赛', current.map(event => option(event.id, `R${String(event.round).padStart(2, '0')} · ${event.name}`))),
       optionGroup('往季精选', past.map(event => option(event.id, `${event.year} ${event.name}`))),
     );
-    const requestedRound = Number(new URLSearchParams(location.search).get('round'));
-    const requested = current.find(event => event.round === requestedRound);
-    if (requested) $('race').value = requested.id;
-    $('race').onchange = setEvent;
+    const requestedRound = Number(pendingUrl.get('round'));
+    const requested = current.find(event => event.round === requestedRound)?.id ?? pendingUrl.get('race');
+    if (seasonLab.has(requested) || pastIndex.has(requested)) $('race').value = requested;
+    const requestedMode = Object.keys(MODE_PARAM).find(key => MODE_PARAM[key] === pendingUrl.get('mode'));
+    if (requestedMode) {
+      state.mode = requestedMode;
+      for (const id of Object.keys(MODE_PARAM)) $(id).setAttribute('aria-pressed', id === requestedMode);
+    }
+    $('race').onchange = () => {
+      pendingUrl = null;
+      setEvent();
+    };
     for (const id of ['driverA', 'driverB']) {
       $(id).onchange = () => {
         const other = $(id === 'driverA' ? 'driverB' : 'driverA');
@@ -504,6 +581,17 @@ async function init() {
     bindReplay();
     bindZoom();
     await setEvent();
+    pendingUrl = null;
+    writeUrl();
+    $('copyLink').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        $('copyLink').textContent = '已复制链接';
+      } catch {
+        $('copyLink').textContent = '请从地址栏复制';
+      }
+      setTimeout(() => { $('copyLink').textContent = '复制当前对比链接'; }, 2000);
+    };
     $('loading').hidden = true;
     $('dashboard').hidden = false;
     $('export').disabled = false;
