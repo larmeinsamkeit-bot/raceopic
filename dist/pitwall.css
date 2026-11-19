@@ -562,3 +562,7 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .minimap-view { fill: rgba(0, 224, 196, .14); stroke: var(--petronas); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 @media (max-width: 600px) { .pw .track-map svg.minimap { width: 96px; height: 96px; } }
 @media (prefers-reduced-motion: reduce) { .minimap { transition: none; } }
+
+.export.ghost { border-color: var(--rule-strong); color: var(--silver); }
+.export.ghost:hover { background: var(--panel); color: var(--text); }
+@media (max-width: 960px) { .deck .export.ghost { grid-column: 1 / -1; justify-self: start; padding: 0 24px; } }

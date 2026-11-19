@@ -13,6 +13,39 @@ const events = new Map();
 const seasonLab = new Map();
 const pastIndex = new Map();
 let eventRequest = 0;
+// Comparison state shared through the address bar: race, drivers, qualifying laps and map mode.
+const MODE_PARAM = {dominance: 'dominance', lines: 'lines', replayMode: 'replay'};
+let pendingUrl = new URLSearchParams(location.search);
+
+function writeUrl() {
+  if (pendingUrl || !state.event) return;
+  const drivers = pair();
+  const query = new URLSearchParams({race: state.event.id, a: drivers[0].code, b: drivers[1].code});
+  for (const [index, key] of ['qa', 'qb'].entries()) {
+    const lap = selectedTelemetry()[index];
+    if (lap && $(index ? 'qualiB' : 'qualiA').selectedIndex > 0) query.set(key, lap.lap);
+  }
+  if (state.mode !== 'dominance') query.set('mode', MODE_PARAM[state.mode]);
+  history.replaceState(null, '', `${location.pathname}?${query}${location.hash}`);
+}
+
+function restoreDrivers() {
+  if (!pendingUrl) return;
+  const byCode = code => state.event.drivers.find(d => d.code === code?.toUpperCase());
+  const [a, b] = [byCode(pendingUrl.get('a')), byCode(pendingUrl.get('b'))];
+  if (a) $('driverA').value = a.id;
+  if (b && (!a || b.id !== a.id)) $('driverB').value = b.id;
+}
+
+function restoreLaps() {
+  if (!pendingUrl) return;
+  for (const [index, key] of ['qa', 'qb'].entries()) {
+    const lap = Number(pendingUrl.get(key));
+    const laps = state.event.telemetry.laps[pair()[index].id] || [];
+    const at = laps.findIndex(row => row.lap === lap);
+    if (at >= 0) $(index ? 'qualiB' : 'qualiA').value = at;
+  }
+}
 
 async function readEventData(url) {
   const response = await fetch(url, {signal: AbortSignal.timeout(15000)});
@@ -88,6 +121,7 @@ function renderEvent() {
     $(id).replaceChildren(...groups);
     $(id).selectedIndex = index;
   }
+  restoreDrivers();
   $('coverage').textContent = `正赛 ${state.event.sourceLaps.toLocaleString()} 条 · 遥测 ${trackDrivers.length}/${state.event.drivers.length} 位`;
   $('circuit').textContent = state.event.circuit;
   changePair();
@@ -103,6 +137,7 @@ function changePair() {
       option(i, `第 ${lap.lap} 圈 · ${lapTime(lap.time)}`)));
     $(`quali${suffix}`).disabled = !laps.length;
   }
+  restoreLaps();
   state.sector = null;
   state.bend = null;
   state.at = 0;
@@ -220,6 +255,7 @@ function renderTrack() {
   $('telemetryNote').textContent =
     `${state.event.telemetrySource ?? 'OpenF1'} · ${drivers[0].code} / ${drivers[1].code} 定位记录 ${first.positionSamples} / ${second.positionSamples}，车载读取记录 ${first.carSamples} / ${second.carSamples}。位置与速度均经过插值对齐。`;
   zoomAttach(view, drivers, replaying);
+  writeUrl();
   if (replaying) {
     setupReplay([first, second], drivers, min, max);
     return;
@@ -489,10 +525,18 @@ async function init() {
       optionGroup('2026 赛季 · 已完赛', current.map(event => option(event.id, `R${String(event.round).padStart(2, '0')} · ${event.name}`))),
       optionGroup('往季精选', past.map(event => option(event.id, `${event.year} ${event.name}`))),
     );
-    const requestedRound = Number(new URLSearchParams(location.search).get('round'));
-    const requested = current.find(event => event.round === requestedRound);
-    if (requested) $('race').value = requested.id;
-    $('race').onchange = setEvent;
+    const requestedRound = Number(pendingUrl.get('round'));
+    const requested = current.find(event => event.round === requestedRound)?.id ?? pendingUrl.get('race');
+    if (seasonLab.has(requested) || pastIndex.has(requested)) $('race').value = requested;
+    const requestedMode = Object.keys(MODE_PARAM).find(key => MODE_PARAM[key] === pendingUrl.get('mode'));
+    if (requestedMode) {
+      state.mode = requestedMode;
+      for (const id of Object.keys(MODE_PARAM)) $(id).setAttribute('aria-pressed', id === requestedMode);
+    }
+    $('race').onchange = () => {
+      pendingUrl = null;
+      setEvent();
+    };
     for (const id of ['driverA', 'driverB']) {
       $(id).onchange = () => {
         const other = $(id === 'driverA' ? 'driverB' : 'driverA');
@@ -521,6 +565,17 @@ async function init() {
     bindReplay();
     bindZoom();
     await setEvent();
+    pendingUrl = null;
+    writeUrl();
+    $('copyLink').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        $('copyLink').textContent = '已复制链接';
+      } catch {
+        $('copyLink').textContent = '请从地址栏复制';
+      }
+      setTimeout(() => { $('copyLink').textContent = '复制当前对比链接'; }, 2000);
+    };
     $('loading').hidden = true;
     $('dashboard').hidden = false;
     $('export').disabled = false;
