@@ -108,6 +108,10 @@
             <p data-en="Every round of the season: qualifying gap and race-pace gap between teammates. Click a round to open it in the lab.">整季每一站的队友排位差距与正赛配速差距，点击某一站可在实验室打开。</p></div>
         </header>
         <label class="field tm-picker"><span class="sr-only" data-en="Team">车队</span><select id="teammatePair" aria-label="选择车队" data-en-label="Choose a team"></select></label>
+        <div class="segmented tm-unit" id="teammateUnit" role="group" aria-label="差距单位" data-en-label="Gap unit">
+          <button type="button" data-unit="s" aria-pressed="true" data-en="Seconds">秒</button>
+          <button type="button" data-unit="pct" aria-pressed="false" data-en="% of lap">% 圈速</button>
+        </div>
         <p class="tm-summary" id="teammateSummary"></p>
         <div class="trace-legend tm-legend" id="teammateLegend"></div>
         <div id="teammateChart" class="tm-chart"></div>

@@ -22,12 +22,13 @@ def lap_seconds(text):
 
 
 def official_gap(a, b):
-    """Gap in the last qualifying session both drivers set a time in, and which session that was."""
+    """Gap in the last qualifying session both drivers set a time in, that session, and the gap
+    as a percentage of the second driver's time."""
     for session in ("q3", "q2", "q1"):
         ta, tb = lap_seconds(a.get(session)), lap_seconds(b.get(session))
         if ta is not None and tb is not None:
-            return round(ta - tb, 3), session.upper()
-    return None, None
+            return round(ta - tb, 3), session.upper(), round(100 * (ta - tb) / tb, 3)
+    return None, None, None
 
 
 def round_gaps(event, qualifying=None):
@@ -41,18 +42,22 @@ def round_gaps(event, qualifying=None):
             continue
         a, b = sorted(members, key=lambda d: d["code"])
         official = qualifying or {}
-        quali, session = (official_gap(official[a["code"]], official[b["code"]])
-                          if a["code"] in official and b["code"] in official else (None, None))
+        quali, session, quali_pct = (official_gap(official[a["code"]], official[b["code"]])
+                                     if a["code"] in official and b["code"] in official else (None, None, None))
         if quali is None:
             best = [min((lap["time"] for lap in telemetry.get(str(d["id"]), [])), default=None) for d in (a, b)]
-            quali = round(best[0] - best[1], 3) if None not in best else None
-            session = "telemetry" if quali is not None else None
+            if None not in best:
+                quali, session = round(best[0] - best[1], 3), "telemetry"
+                quali_pct = round(100 * (best[0] - best[1]) / best[1], 3)
         clean = [{lap["lap"]: lap["time"] for lap in d["laps"] if lap["time"] is not None and not lap["excluded"]}
                  for d in (a, b)]
         paired = [clean[0][n] - clean[1][n] for n in clean[0] if n in clean[1]]
         race = round(median(paired), 3) if len(paired) >= MIN_PAIRED_LAPS else None
+        # Percentages compare across circuits of different length (the "supertime" idea).
+        paired_pct = [100 * (clean[0][n] - clean[1][n]) / clean[1][n] for n in clean[0] if n in clean[1]]
+        race_pct = round(median(paired_pct), 3) if len(paired_pct) >= MIN_PAIRED_LAPS else None
         rows.append({"team": team, "drivers": [a["code"], b["code"]], "quali": quali, "quali_session": session,
-                     "race": race, "paired_laps": len(paired)})
+                     "quali_pct": quali_pct, "race": race, "race_pct": race_pct, "paired_laps": len(paired)})
     return rows
 
 
@@ -68,7 +73,8 @@ def build(dist):
             pair = pairs.setdefault(key, {"team": row["team"], "drivers": row["drivers"], "rounds": []})
             pair["rounds"].append({"round": event["round"], "name": event["name"], "id": event["id"],
                                    "quali": row["quali"], "quali_session": row["quali_session"],
-                                   "race": row["race"], "paired_laps": row["paired_laps"]})
+                                   "quali_pct": row["quali_pct"], "race": row["race"], "race_pct": row["race_pct"],
+                                   "paired_laps": row["paired_laps"]})
     result = []
     for pair in pairs.values():
         quali = [r["quali"] for r in pair["rounds"] if r["quali"] is not None]
@@ -77,6 +83,8 @@ def build(dist):
             "quali_ahead": [sum(g < 0 for g in quali), sum(g > 0 for g in quali)],
             "race_ahead": [sum(g < 0 for g in race), sum(g > 0 for g in race)],
             "quali_median": round(median(quali), 3) if quali else None,
+            "quali_pct_median": round(median(q), 3) if (q := [r["quali_pct"] for r in pair["rounds"] if r["quali_pct"] is not None]) else None,
+            "race_pct_median": round(median(q), 3) if (q := [r["race_pct"] for r in pair["rounds"] if r["race_pct"] is not None]) else None,
             "race_median": round(median(race), 3) if race else None,
         }
         result.append(pair)

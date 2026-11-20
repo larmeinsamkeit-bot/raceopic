@@ -180,7 +180,8 @@ class Teammates(unittest.TestCase):
     def test_official_gap_uses_last_shared_session(self):
         a = {"q1": "1:30.000", "q2": "1:29.500", "q3": "1:29.000"}
         b = {"q1": "1:30.200", "q2": "1:29.300", "q3": None}
-        self.assertEqual(official_gap(a, b), (.2, "Q2"))
+        self.assertEqual(official_gap(a, b)[:2], (.2, "Q2"))
+        self.assertAlmostEqual(official_gap(a, b)[2], 100 * .2 / 89.3, places=3)
         self.assertEqual(lap_seconds("1:27.470"), 87.47)
         self.assertIsNone(lap_seconds(""))
 

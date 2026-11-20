@@ -678,3 +678,5 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 
 /* keyboard-focusable charts */
 .chart:focus-visible, .trace-chart:focus-visible, .story-chart:focus-visible { outline: 2px solid var(--petronas); outline-offset: 6px; border-radius: 6px; }
+.tm-unit { margin: 0 0 12px 16px; vertical-align: middle; }
+.tm-picker { display: inline-block; vertical-align: middle; width: min(420px, 100%); }
