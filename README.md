@@ -12,10 +12,11 @@
 - **Where the gap is made.** A distance-aligned trace of the two qualifying laps: cumulative time gap (integrated from car speed and scaled to the official lap times, so it ends on the real difference), speed, throttle and brake, plus a summary of the stretches where most time changed hands.
 - **Zoom anywhere on the circuit.** Scroll or pinch over any corner to zoom in there, drag to pan, double-click to dive in, and let the camera follow a car during the replay. A minimap shows where you are.
 - **Race pace on one lap axis.** Lap times, a per-lap delta strip ("faster on N laps"), track and air temperature with rain laps, and tyre stints share the same x axis, with outlier laps (starts, pit laps, safety cars) excluded by default.
+- **Whole-race replay.** Every car on the map with the running order, gaps, tyres and pit stops, rebuilt from lap times shaped by a qualifying lap's speed profile (not GPS); the 2026 Brazil finish comes out in the official order.
 - **Race story and tyre wear.** Every driver's gap to the leader lap by lap with pit stops and safety cars, and each stint's fuel-corrected lap time against tyre age with a fitted degradation slope.
 - **Pit-stop what-if.** A dry-race model fitted on the whole field estimates what moving one stop would have cost or gained.
 - **Shareable comparisons.** The URL carries race, drivers, qualifying laps and view, e.g. [`?race=brazil&a=VER&b=NOR&mode=replay`](https://larmeinsamkeit-bot.github.io/raceopic/?race=brazil&a=VER&b=NOR&mode=replay).
-- **2026 season.** Calendar, driver and constructor standings after every round, a teammate head-to-head (qualifying and race-pace gap in every round), classifications, and per-round OpenF1 race archives.
+- **2026 season.** Calendar, driver and constructor standings after every round, a teammate head-to-head (official qualifying and race-pace gap in every round, in seconds or % of lap time), classifications, and per-round OpenF1 race archives.
 - **English and Chinese.** The interface follows the browser language; the EN / 中文 button switches and remembers it.
 
 ![Replay zoomed in and following a car through Monaco](docs/replay.gif)
@@ -134,6 +135,7 @@ Raceopic 是一个 F1 数据分析网站，回答一个问题：**两位车手�
 - **赛道图**：分段优势、24 个迷你分段、行车线、双车同步回放。可在赛道任意位置滚动、双指或双击放大，拖动平移，回放时镜头可跟随车手，并有小地图显示当前位置。
 - **时间差曲线**：两圈排位沿赛道距离对齐的累积时间差（由车速积分并按官方圈速缩放）、车速、油门与制动，并自动指出差距最大的路段。
 - **正赛节奏**：圈速、每圈差值、赛道温度与降雨、轮胎时间线共用同一条圈数轴，默认排除发车圈、进出站圈和安全车圈。
+- **整场回放**：全场车辆在赛道上移动，配实时排名、差距、轮胎与进站，由每圈圈速按排位圈的速度分布重建（非 GPS）。
 - **比赛进程与轮胎衰退**：全场每圈与领先者的差距（标出进站与安全车），以及各段轮胎修正燃油后的圈速与胎龄、衰退斜率。
 - **进站情景**：用全场数据拟合的干地模型，估算换一圈进站的得失。
 - **可分享链接**：网址会记录赛事、车手、排位圈和模式。

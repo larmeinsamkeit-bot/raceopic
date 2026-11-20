@@ -680,3 +680,28 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .chart:focus-visible, .trace-chart:focus-visible, .story-chart:focus-visible { outline: 2px solid var(--petronas); outline-offset: 6px; border-radius: 6px; }
 .tm-unit { margin: 0 0 12px 16px; vertical-align: middle; }
 .tm-picker { display: inline-block; vertical-align: middle; width: min(420px, 100%); }
+
+/* =================== whole-race replay =================== */
+.rr-stage { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
+.rr-map svg { width: 100%; height: min(46vw, 520px); display: block; }
+.rr-car circle { stroke: var(--bg); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.rr-car text { fill: var(--text); font: 700 26px var(--num); text-anchor: middle; paint-order: stroke; stroke: var(--bg); stroke-width: 6px; }
+.rr-car.rr-focus circle { stroke: var(--text); stroke-width: 2.5; }
+.rr-board { list-style: none; margin: 0; padding: 0; max-height: 520px; overflow-y: auto; border-top: 1px solid var(--rule); }
+.rr-row { display: grid; grid-template-columns: 26px 6px 44px auto 1fr 24px 26px; align-items: center; gap: 8px; padding: 6px 4px;
+  border-bottom: 1px solid var(--rule); font-size: 14px; }
+.rr-row.rr-focus { background: var(--teal-surface); }
+.rr-row.rr-out { opacity: .45; }
+.rr-pos { font: 600 16px var(--num); color: var(--muted); text-align: right; }
+.rr-swatch { width: 4px; height: 18px; border-radius: 2px; }
+.rr-row strong { font: 600 16px var(--num); }
+.rr-gap { font: 15px var(--num); color: var(--silver); text-align: right; }
+.rr-age { font: 13px var(--num); color: var(--muted); }
+.rr-row .tyre-chip { width: 22px; height: 22px; font-size: 12px; }
+.rr-pit { font: 600 11px var(--sans); color: var(--bg); background: #e6ca66; border-radius: 3px; padding: 1px 5px; }
+.rr-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.rr-controls button, .rr-controls select { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--bg); color: var(--text); font: 14px var(--sans); }
+.rr-controls button { background: var(--petronas); border-color: var(--petronas); color: #041917; font-weight: 600; cursor: pointer; }
+#rrClock { font: 600 18px var(--num); color: var(--petronas); min-width: 110px; }
+#rrTime { flex: 1 1 240px; accent-color: var(--petronas); }
+@media (max-width: 960px) { .rr-stage { grid-template-columns: 1fr; } .rr-map svg { height: 320px; } .rr-board { max-height: 360px; } }

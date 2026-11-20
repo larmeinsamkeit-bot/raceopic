@@ -28,6 +28,7 @@
   <script src="story.js" defer></script>
   <script src="deg.js" defer></script>
   <script src="weather.js" defer></script>
+  <script src="racereplay.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
@@ -36,6 +37,7 @@
     <nav class="tabs" aria-label="主导航" data-en-label="Main">
       <a data-en="Telemetry" href="#track" aria-current="page">遥测</a>
       <a data-en="Race pace" href="#overview">正赛节奏</a>
+      <a data-en="Race replay" href="#raceReplay">整场回放</a>
       <a data-en="Pit what-if" href="#strategy">进站情景</a>
       <a data-en="2026 season" href="season.html">2026 赛季</a>
       <a data-en="Method" href="#method">方法</a>
@@ -189,6 +191,27 @@
           <div id="storyChart" class="story-chart"></div>
           <p class="note" id="storyNote"></p>
         </div>
+      </section>
+
+      <section class="chapter" id="raceReplay" aria-labelledby="rrTitle" hidden>
+        <header class="chapter-head">
+          <span class="chapter-mark">▶</span>
+          <div class="chapter-title"><h2 id="rrTitle" data-en="Whole-race replay">整场回放</h2>
+            <p data-en="Every car on the track with the running order, gaps and tyres, rebuilt from lap times">全场车辆、实时排名、差距与轮胎，由每圈圈速重建</p></div>
+        </header>
+        <div class="rr-stage">
+          <div class="rr-map" id="rrMap"></div>
+          <ol class="rr-board" id="rrBoard" aria-live="off"></ol>
+        </div>
+        <div class="rr-controls">
+          <button type="button" id="rrPlay">▶ 播放</button>
+          <select id="rrRate" aria-label="回放速度" data-en-label="Replay speed">
+            <option value="15">15×</option><option value="30">30×</option><option value="60" selected>60×</option><option value="120">120×</option>
+          </select>
+          <output id="rrClock"></output>
+          <input id="rrTime" type="range" min="0" max="1000" value="0" aria-label="比赛进度" data-en-label="Race progress">
+        </div>
+        <p class="note" id="rrNote"></p>
       </section>
 
       <section class="chapter strategy" id="strategy" aria-labelledby="stratTitle">

@@ -166,6 +166,7 @@ function changePair() {
   renderTrack();
   renderPace();
   renderStints();
+  renderRaceReplay();
   setupStrategy();
 }
 
@@ -617,6 +618,7 @@ async function init() {
     $('export').onclick = exportCsv;
     bindReplay();
     bindZoom();
+    bindRaceReplay();
     await setEvent();
     pendingUrl = null;
     writeUrl();

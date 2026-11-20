@@ -74,6 +74,16 @@ try {
   const expected = Math.abs(seconds(times[0]) - seconds(times[1])).toFixed(3);
   check(summary.includes(expected), `trace lap gap ${expected} s appears in the summary`);
 
+  // Whole-race replay: every car, and the finishing order the lap times give.
+  await page.goto(base + 'index.html?race=2026-r20');
+  await loaded(page);
+  check(await page.$$eval('.rr-car', c => c.length) === 22, 'race replay draws all 22 cars');
+  await page.$eval('#rrTime', el => { el.value = 1000; el.dispatchEvent(new Event('input')); });
+  const podium = await page.$$eval('#rrBoard li strong', s => s.slice(0, 5).map(x => x.textContent));
+  check(podium.join(' ') === 'NOR VER HAD RUS ANT', `race replay finishing order ${podium.join(' ')}`);
+  await page.goto(base + 'index.html?race=2026-r06&a=RUS&b=ANT');
+  await loaded(page);
+
   // Charts move their cursor from the keyboard.
   await page.focus('#traceChart');
   await page.keyboard.press('End');
