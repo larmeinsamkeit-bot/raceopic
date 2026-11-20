@@ -30,8 +30,12 @@ const GP_EN = {
   '美国大奖赛': 'United States Grand Prix', '墨西哥城大奖赛': 'Mexico City Grand Prix', '巴西大奖赛': 'Brazilian Grand Prix',
   '圣保罗大奖赛': 'São Paulo Grand Prix', '巴林大奖赛': 'Bahrain Grand Prix', '拉斯维加斯大奖赛': 'Las Vegas Grand Prix',
   '卡塔尔大奖赛': 'Qatar Grand Prix', '阿布扎比大奖赛': 'Abu Dhabi Grand Prix',
+  '沙特阿拉伯大奖赛': 'Saudi Arabian Grand Prix', '艾米利亚-罗马涅大奖赛': 'Emilia Romagna Grand Prix',
 };
-const gpName = name => (LANG === 'en' ? GP_EN[name] || name : name);
+// Races added from OpenF1 carry English names; show the Chinese one where it is known.
+const GP_ZH = {...Object.fromEntries(Object.entries(GP_EN).map(([zh, en]) => [en, zh])),
+  'Brazilian Grand Prix': '巴西大奖赛', 'Spanish Grand Prix': '西班牙大奖赛', 'Bahrain Grand Prix': '巴林大奖赛'};
+const gpName = name => (LANG === 'en' ? GP_EN[name] || name : GP_ZH[name] || name);
 
 function applyLanguage() {
   // Static markup carries its English in data-en (text), data-en-label (aria-label) and data-en-title.
