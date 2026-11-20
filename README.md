@@ -105,7 +105,13 @@ python3 -B data-tools/predict_strategy.py evaluate --cache /tmp/raceopic-predict
 python3 -B -m unittest discover -s data-tools/tests -v
 ```
 
-CI (`.github/workflows/ci.yml`) runs the unit tests, syntax-checks every site script and validates all site data. Pushing to `main` publishes `dist/` to GitHub Pages (`.github/workflows/pages.yml`).
+Browser smoke test (opens every race, the four map views, zoom, replay, a shared link, the season page, English mode and a phone-width layout):
+
+```sh
+node tests/e2e/smoke.mjs
+```
+
+CI (`.github/workflows/ci.yml`) runs the unit tests, syntax-checks every site script, validates all site data and runs the browser smoke test in Chromium. Pushing to `main` publishes `dist/` to GitHub Pages (`.github/workflows/pages.yml`).
 
 Raceopic is an independent data project and not an official Formula 1 product.
 

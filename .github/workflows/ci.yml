@@ -25,3 +25,17 @@ jobs:
         run: for f in dist/*.js; do node --check "$f"; done
       - name: Site data is valid JSON
         run: find dist -name '*.json' -print0 | xargs -0 -n 50 python -c "import json, sys; [json.load(open(p)) for p in sys.argv[1:]]"
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: End-to-end smoke test
+        run: node tests/e2e/smoke.mjs
