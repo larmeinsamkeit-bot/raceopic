@@ -1,14 +1,25 @@
 {
   "race": {
     "year": 2026,
+    "circuit": "Las Vegas",
     "location": "Las Vegas",
     "laps": 50,
     "session_key": 11420,
     "date_start": "2026-11-22T04:00:00+00:00"
   },
-  "created": "2026-11-19T02:29:22+00:00",
+  "created": "2026-11-20T18:28:34+00:00",
   "method": "Recency-weighted frequencies over full-distance runners in earlier editions; practice data not available yet.",
+  "scenario": "dry",
   "uses_practice": false,
+  "practice_status": {
+    "state": "wet",
+    "sessions_run": [
+      "Practice 1",
+      "Practice 2"
+    ],
+    "dry_long_runs": 0,
+    "wet_stints": 90
+  },
   "practice_weight": 0.3,
   "weight_selection": {
     "candidates": [
@@ -17,11 +28,42 @@
       0.6
     ],
     "mean_brier": {
+      "0.0": 0.887,
+      "0.3": 0.771,
+      "0.6": 0.834
+    },
+    "this_circuit_brier": {
       "0.0": 0.765,
       "0.3": 0.66,
       "0.6": 0.735
     },
-    "rule": "lowest mean stop-count Brier score across backtests"
+    "pooled_over": [
+      {
+        "circuit": "Las Vegas",
+        "year": 2024
+      },
+      {
+        "circuit": "Las Vegas",
+        "year": 2025
+      },
+      {
+        "circuit": "Yas Marina Circuit",
+        "year": 2024
+      },
+      {
+        "circuit": "Yas Marina Circuit",
+        "year": 2025
+      },
+      {
+        "circuit": "Lusail",
+        "year": 2024
+      },
+      {
+        "circuit": "Lusail",
+        "year": 2025
+      }
+    ],
+    "rule": "lowest mean stop-count Brier score across every circuit's backtests"
   },
   "practice": null,
   "history": [
@@ -351,9 +393,11 @@
   "caveats": [
     "Earlier editions ran under different technical rules and tyre allocations.",
     "Safety cars and red flags are not modelled; they move stop laps.",
+    "The forecast assumes a dry race: none of the earlier editions was wet, so there is no history to forecast a wet strategy from. A wet or mixed race is scored but left out of the season record.",
     "Pit loss uses the median pit-lane time of the previous edition.",
     "Las Vegas track evolution is strong: practice long runs often get faster with tyre age, so degradation is floored and the simulation mostly weighs pit loss against tyre life.",
-    "Only two editions can be backtested; the chosen weight is a small-sample choice."
+    "Only a few editions can be backtested; the chosen weight is a small-sample choice."
   ],
+  "notes_zh": [],
   "result": null
 }

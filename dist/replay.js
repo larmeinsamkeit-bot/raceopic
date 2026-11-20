@@ -36,7 +36,7 @@ function replayMap(laps, drivers, reference, min, max, scale) {
     if (bend < min || bend > max) return '';
     const [x, y] = reference[bend];
     return `<g class="replay-bend" data-bend="${bend}" transform="translate(${x} ${y})"><g class="glyph" data-s="${scale}">
-      <title>弯区 ${i + 1}</title><circle class="bend-hit" r="34"/><circle r="18"/><text y="1">${i + 1}</text>
+      <title>${L(`弯区 ${i + 1}`, `Corner ${i + 1}`)}</title><circle class="bend-hit" r="34"/><circle r="18"/><text y="1">${i + 1}</text>
     </g></g>`;
   }).join('');
   const cars = drivers.map(({code}, i) =>
@@ -76,7 +76,7 @@ function sampleAtTime(samples, elapsed, min, max) {
 function stopReplay() {
   if (replay.frame !== null) cancelAnimationFrame(replay.frame);
   replay.frame = replay.lastTick = null;
-  $('replayPlay').textContent = '▶ 播放';
+  $('replayPlay').textContent = L('▶ 播放', '▶ Play');
 }
 
 function setupReplay(laps, drivers, min, max) {
@@ -96,11 +96,11 @@ function setupReplay(laps, drivers, min, max) {
   replay.speedLabels = laps.map((_, i) => $(`replaySpeed${i}`));
   replay.statusLabels = laps.map((_, i) => $(`replayStatus${i}`));
   const bend = $('replayBend');
-  bend.replaceChildren(option('', '选择弯区'), ...state.bends.map((index, i) => option(index, `弯区 ${i + 1}`)));
+  bend.replaceChildren(option('', L('选择弯区', 'Pick a corner')), ...state.bends.map((index, i) => option(index, L(`弯区 ${i + 1}`, `Corner ${i + 1}`))));
   bend.value = state.bend ?? '';
   $('bendMetrics').innerHTML = state.bend === null ? '' :
-    `<table class="bend-metrics"><caption>弯区速度 · km/h</caption>
-      <thead><tr><th scope="col">车手</th><th scope="col">进弯</th><th scope="col">最低</th><th scope="col">出弯</th></tr></thead>
+    `<table class="bend-metrics"><caption>${L('弯区速度', 'Corner speed')} · km/h</caption>
+      <thead><tr><th scope="col">${L('车手', 'Driver')}</th><th scope="col">${L('进弯', 'Entry')}</th><th scope="col">${L('最低', 'Minimum')}</th><th scope="col">${L('出弯', 'Exit')}</th></tr></thead>
       <tbody>${laps.map(({samples}, i) => {
         const speeds = samples.slice(min, max + 1).map(point => point[2]);
         return `<tr><th scope="row">${drivers[i].code}</th><td>${Math.round(speeds[0])}</td>
@@ -112,8 +112,8 @@ function setupReplay(laps, drivers, min, max) {
 function updateReplay(elapsed) {
   replay.time = elapsed;
   $('replayTime').value = Math.round(REPLAY_SLIDER_STEPS * (elapsed - replay.start) / (replay.end - replay.start));
-  $('replayTime').setAttribute('aria-valuetext', `${elapsed.toFixed(1)} 秒`);
-  $('replayClock').textContent = `${elapsed.toFixed(1)} / ${replay.end.toFixed(1)} 秒`;
+  $('replayTime').setAttribute('aria-valuetext', `${elapsed.toFixed(1)} ${L('秒', 's')}`);
+  $('replayClock').textContent = `${elapsed.toFixed(1)} / ${replay.end.toFixed(1)} ${L('秒', 's')}`;
   const {min, max} = replay;
   for (const [i, {samples, time}] of replay.laps.entries()) {
     const {index, point, brake} = sampleAtTime(samples, elapsed, min, max);
@@ -124,9 +124,9 @@ function updateReplay(elapsed) {
     replay.dots[i].style.display = waiting ? 'none' : '';
     replay.tails[i].setAttribute('d', waiting ? '' : path([...samples.slice(Math.max(min, index - 7), index + 1), point]));
     replay.speedLabels[i].textContent = waiting ? '—' : `${Math.round(point[2])} km/h`;
-    replay.statusLabels[i].textContent = waiting ? '尚未进入范围'
-      : passed ? (replay.windowed ? '已通过范围' : `完成 · ${lapTime(time)}`)
-      : `油门 ${Math.round(point[3])}% · ${brake ? '制动中' : '未制动'}`;
+    replay.statusLabels[i].textContent = waiting ? L('尚未进入范围', 'Not in range yet')
+      : passed ? (replay.windowed ? L('已通过范围', 'Through the range') : `${L('完成', 'Finished')} · ${lapTime(time)}`)
+      : L(`油门 ${Math.round(point[3])}% · ${brake ? '制动中' : '未制动'}`, `throttle ${Math.round(point[3])}% · ${brake ? 'braking' : 'no brake'}`);
   }
 }
 
@@ -140,7 +140,7 @@ function tickReplay(now) {
     replay.frame = requestAnimationFrame(tickReplay);
   } else {
     stopReplay();
-    $('replayPlay').textContent = '▶ 重播';
+    $('replayPlay').textContent = L('▶ 重播', '▶ Replay');
   }
 }
 
@@ -151,7 +151,7 @@ function bindReplay() {
       return;
     }
     if (replay.time >= replay.end) updateReplay(replay.start);
-    $('replayPlay').textContent = 'Ⅱ 暂停';
+    $('replayPlay').textContent = L('Ⅱ 暂停', 'Ⅱ Pause');
     replay.frame = requestAnimationFrame(tickReplay);
   };
   $('replayReset').onclick = () => {

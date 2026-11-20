@@ -6,14 +6,14 @@ const OPENF1 = 'https://api.openf1.org/v1/';
 const CACHE = 'raceopic-season-2026-v1';
 const INTERVAL = 15 * 60 * 1000;
 const sessions = {
-  FirstPractice: '第一次练习', SecondPractice: '第二次练习', ThirdPractice: '第三次练习',
-  SprintQualifying: '冲刺排位', Sprint: '冲刺赛', Qualifying: '排位赛', Race: '正赛',
+  FirstPractice: L('第一次练习', 'Practice 1'), SecondPractice: L('第二次练习', 'Practice 2'), ThirdPractice: L('第三次练习', 'Practice 3'),
+  SprintQualifying: L('冲刺排位', 'Sprint qualifying'), Sprint: L('冲刺赛', 'Sprint'), Qualifying: L('排位赛', 'Qualifying'), Race: L('正赛', 'Race'),
 };
-const resultLabels = {results: '正赛', qualifying: '排位', sprint: '冲刺'};
+const resultLabels = {results: L('正赛', 'Race'), qualifying: L('排位', 'Qualifying'), sprint: L('冲刺', 'Sprint')};
 const classes = {results: 'Results', qualifying: 'QualifyingResults', sprint: 'SprintResults'};
-const archiveLabels = {laps: '逐圈计时', stints: '轮胎', pit: '进站', weather: '天气', race_control: '赛会消息'};
-const time = new Intl.DateTimeFormat('zh-CN', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
-const num = new Intl.NumberFormat('zh-CN', {maximumFractionDigits: 2});
+const archiveLabels = {laps: L('逐圈计时', 'Laps'), stints: L('轮胎', 'Stints'), pit: L('进站', 'Pit stops'), weather: L('天气', 'Weather'), race_control: L('赛会消息', 'Race control')};
+const time = new Intl.DateTimeFormat(L('zh-CN', 'en-GB'), {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
+const num = new Intl.NumberFormat(L('zh-CN', 'en-GB'), {maximumFractionDigits: 2});
 const state = {data: null, round: null, result: 'results', archiveType: 'laps', archiveIndex: [], labRounds: new Set(), archiveToken: 0, archives: new Map(), checked: 0};
 
 function safe(value) {
@@ -38,7 +38,7 @@ function resultTypes(race) { return ['results', 'qualifying', ...(race.sessions.
 
 function tableRows(kind, rows, previous) {
   const baseline = new Map(previous.map(row => [row.id, row]));
-  $(`${kind}Count`).textContent = `${rows.length} ${kind === 'driver' ? '位车手' : '支车队'}`;
+  $(`${kind}Count`).textContent = `${rows.length} ${kind === 'driver' ? L('位车手', 'drivers') : L('支车队', 'teams')}`;
   $(`${kind}Board`).innerHTML = rows.map(row => {
     const before = baseline.get(row.id);
     const move = before?.rank != null && row.rank != null ? before.rank - row.rank : 0;
@@ -50,7 +50,7 @@ function tableRows(kind, rows, previous) {
       <td>${safe(row.name)}${subline ? `<small>${subline}</small>` : ''}</td>
       <td class="numeric ${gained > 0 ? 'gain' : gained < 0 ? 'loss' : ''}">${delta}</td>
       <td class="numeric points">${num.format(row.points)}</td></tr>`;
-  }).join('') || '<tr><td colspan="4">暂无积分记录</td></tr>';
+  }).join('') || `<tr><td colspan="4">${L('暂无积分记录', 'No points yet')}</td></tr>`;
 }
 
 function render() {
@@ -61,23 +61,23 @@ function render() {
   const asOf = done.filter(n => n <= race.round).at(-1);
   const selected = snapshots[asOf];
   const previous = snapshots[done.filter(n => n < asOf).at(-1)];
-  $('roundSelect').replaceChildren(new Option('跟随最新已结算轮次', ''), ...rounds.map(r => new Option(roundLabel(r), r.round)));
+  $('roundSelect').replaceChildren(new Option(L('跟随最新已结算轮次', 'Latest completed round'), ''), ...rounds.map(r => new Option(roundLabel(r), r.round)));
   $('roundSelect').value = state.round ?? '';
   $('calendarTitle').textContent = roundLabel(race);
   $('roundMeta').textContent = `${race.circuit} · ${dateLabel(race.date, race.time)}`;
-  $('calendarNext').textContent = next ? `下一站 ${next.name} · ${dateLabel(next.date, next.time)}` : '赛季已结算';
+  $('calendarNext').textContent = next ? `${L('下一站', 'Next:')} ${next.name} · ${dateLabel(next.date, next.time)}` : L('赛季已结算', 'Season complete');
   $('previousRound').disabled = race === rounds[0];
   $('nextRound').disabled = race === rounds.at(-1);
   $('calendarProgress').max = rounds.length;
   $('calendarProgress').value = done.length;
-  $('calendarProgress').setAttribute('aria-valuetext', `已结算 ${done.length} / ${rounds.length} 轮`);
-  $('lastUpdated').textContent = `数据核对于 ${time.format(new Date(state.data.updated))} · 已结算 ${done.length}/${rounds.length} 轮`;
+  $('calendarProgress').setAttribute('aria-valuetext', L(`已结算 ${done.length} / ${rounds.length} 轮`, `${done.length} of ${rounds.length} rounds complete`));
+  $('lastUpdated').textContent = L(`数据核对于 ${time.format(new Date(state.data.updated))} · 已结算 ${done.length}/${rounds.length} 轮`, `Checked ${time.format(new Date(state.data.updated))} · ${done.length}/${rounds.length} rounds complete`);
   const programme = Object.entries(race.sessions).sort(([, a], [, b]) => stamp(a.date, a.time) - stamp(b.date, b.time));
   $('sessionSchedule').innerHTML = programme.map(([key, date]) =>
     `<div><strong>${sessions[key]}</strong><span>${safe(dateLabel(date.date, date.time))}</span></div>`).join('');
-  $('boardNotice').textContent = !selected ? '此轮暂无积分记录。' : asOf === race.round ?
-    `第 ${asOf} 轮结束后 · 本轮列为较上一轮的积分变化` :
-    `第 ${race.round} 轮尚未结算，当前显示截至第 ${asOf} 轮的积分。`;
+  $('boardNotice').textContent = !selected ? L('此轮暂无积分记录。', 'No standings for this round yet.') : asOf === race.round ?
+    L(`第 ${asOf} 轮结束后 · 本轮列为较上一轮的积分变化`, `After round ${asOf} · the round column is the change since the previous round`) :
+    L(`第 ${race.round} 轮尚未结算，当前显示截至第 ${asOf} 轮的积分。`, `Round ${race.round} is not complete; showing standings after round ${asOf}.`);
   tableRows('driver', selected?.drivers ?? [], previous?.drivers ?? []);
   tableRows('team', selected?.teams ?? [], previous?.teams ?? []);
   renderResults(race);
@@ -105,25 +105,25 @@ function renderResults(race) {
   const rows = state.data.snapshots[race.round]?.results[state.result] || [];
   $('resultEmpty').hidden = Boolean(rows.length);
   $('resultScroll').hidden = !rows.length;
-  $('resultEmpty').textContent = rows.length ? '' : '此轮暂未归档这类成绩。';
+  $('resultEmpty').textContent = rows.length ? '' : L('此轮暂未归档这类成绩。', 'No results of this type for this round yet.');
   if (!rows.length) return;
   const qualifying = state.result === 'qualifying';
-  const headers = qualifying ? ['排名', '车手', 'Q1', 'Q2', 'Q3'] : ['排名', '车手', '发车位', '完成圈', '成绩 / 状态', '积分'];
+  const headers = qualifying ? [L('排名', 'Pos'), L('车手', 'Driver'), 'Q1', 'Q2', 'Q3'] : [L('排名', 'Pos'), L('车手', 'Driver'), L('发车位', 'Grid'), L('完成圈', 'Laps'), L('成绩 / 状态', 'Time / status'), L('积分', 'Points')];
   $('resultHead').innerHTML = `<tr>${headers.map(label => `<th scope="col">${label}</th>`).join('')}</tr>`;
   $('resultRows').innerHTML = rows.map(row => {
     const values = qualifying ? [row.q1, row.q2, row.q3] :
-      [Number(row.grid) === 0 && row.grid != null ? '维修区/未排位' : row.grid, row.laps, row.time || row.status, row.points];
+      [Number(row.grid) === 0 && row.grid != null ? L('维修区/未排位', 'Pit lane / no grid') : row.grid, row.laps, row.time || row.status, row.points];
     return `<tr><th scope="row">${safe(row.rank)}</th><td>${safe(row.name)}<small>${safe(row.team)}</small></td>
       ${values.map(value => `<td>${safe(value)}</td>`).join('')}</tr>`;
   }).join('');
 }
 
 const columns = {
-  laps: [['车手', 'driver_number'], ['圈数', 'lap_number'], ['圈速 s', 'lap_duration'], ['S1 s', 'duration_sector_1'], ['S2 s', 'duration_sector_2'], ['S3 s', 'duration_sector_3']],
-  stints: [['车手', 'driver_number'], ['配方', 'compound'], ['起始圈', 'lap_start'], ['结束圈', 'lap_end'], ['起始胎龄', 'tyre_age_at_start']],
-  pit: [['车手', 'driver_number'], ['进站圈', 'lap_number'], ['维修区 s', 'lane_duration'], ['停留 s', 'stop_duration']],
-  weather: [['时间', 'date'], ['气温 °C', 'air_temperature'], ['赛道 °C', 'track_temperature'], ['湿度 %', 'humidity'], ['降雨', 'rainfall'], ['风速 m/s', 'wind_speed']],
-  race_control: [['时间', 'date'], ['圈数', 'lap_number'], ['分类', 'category'], ['赛会消息', 'message']],
+  laps: [[L('车手', 'Driver'), 'driver_number'], [L('圈数', 'Lap'), 'lap_number'], [L('圈速 s', 'Lap time s'), 'lap_duration'], ['S1 s', 'duration_sector_1'], ['S2 s', 'duration_sector_2'], ['S3 s', 'duration_sector_3']],
+  stints: [[L('车手', 'Driver'), 'driver_number'], [L('配方', 'Compound'), 'compound'], [L('起始圈', 'First lap'), 'lap_start'], [L('结束圈', 'Last lap'), 'lap_end'], [L('起始胎龄', 'Age at start'), 'tyre_age_at_start']],
+  pit: [[L('车手', 'Driver'), 'driver_number'], [L('进站圈', 'Lap'), 'lap_number'], [L('维修区 s', 'Pit lane s'), 'lane_duration'], [L('停留 s', 'Stationary s'), 'stop_duration']],
+  weather: [[L('时间', 'Time'), 'date'], [L('气温 °C', 'Air °C'), 'air_temperature'], [L('赛道 °C', 'Track °C'), 'track_temperature'], [L('湿度 %', 'Humidity %'), 'humidity'], [L('降雨', 'Rain'), 'rainfall'], [L('风速 m/s', 'Wind m/s'), 'wind_speed']],
+  race_control: [[L('时间', 'Time'), 'date'], [L('圈数', 'Lap'), 'lap_number'], [L('分类', 'Category'), 'category'], [L('赛会消息', 'Message'), 'message']],
 };
 
 async function renderArchive(race) {
@@ -132,9 +132,9 @@ async function renderArchive(race) {
   $('archiveDownload').hidden = $('archiveContent').hidden = true;
   $('archiveLab').hidden = !state.labRounds.has(race.round);
   $('archiveLab').href = `index.html?round=${race.round}#track`;
-  $('archiveTitle').textContent = `${race.name} · 正赛档案`;
+  $('archiveTitle').textContent = `${race.name} · ${L('正赛档案', 'race archive')}`;
   const settled = Boolean(state.data.snapshots[race.round]);
-  $('archiveStatus').textContent = entry || settled ? '正在读取本站档案…' : '本站正赛详细数据待发布。';
+  $('archiveStatus').textContent = entry || settled ? L('正在读取本站档案…', 'Loading the race archive…') : L('本站正赛详细数据待发布。', 'Detailed race data is not published yet.');
   if (!entry && !settled) return;
   try {
     const url = entry ? `season-2026/${entry.key}.json` : null;
@@ -151,12 +151,12 @@ async function renderArchive(race) {
     $('archiveDownload').href = url || '#roundArchive';
     $('archiveDownload').onclick = url ? null : event => { event.preventDefault(); saveJson(data, filename); };
     $('archiveDownload').download = filename;
-    $('archiveStatus').textContent = `${data.drivers.length} 位车手 · ${num.format(data.laps.length)} 条逐圈记录。可下载本站完整归档。`;
-    $('archiveDriver').replaceChildren(new Option('全部车手', ''), ...state.archive.drivers.map(d =>
+    $('archiveStatus').textContent = L(`${data.drivers.length} 位车手 · ${num.format(data.laps.length)} 条逐圈记录。可下载本站完整归档。`, `${data.drivers.length} drivers · ${num.format(data.laps.length)} laps. The full archive can be downloaded.`);
+    $('archiveDriver').replaceChildren(new Option(L('全部车手', 'All drivers'), ''), ...state.archive.drivers.map(d =>
       new Option(`${d.name_acronym} · ${d.last_name}`, d.driver_number)));
     renderArchiveRows();
   } catch {
-    if (token === state.archiveToken) $('archiveStatus').textContent = '本站详细数据暂不可用，可稍后刷新重试。';
+    if (token === state.archiveToken) $('archiveStatus').textContent = L('本站详细数据暂不可用，可稍后刷新重试。', 'Detailed data is unavailable right now; try again later.');
   }
 }
 
@@ -208,11 +208,11 @@ function renderArchiveRows() {
   const value = (row, field) => {
     if (field === 'date') return row[field] ? time.format(new Date(row[field])) : null;
     if (field === 'driver_number') return codes.get(row[field]) ?? row[field];
-    if (field === 'rainfall') return row[field] == null ? null : row[field] ? '有' : '无';
+    if (field === 'rainfall') return row[field] == null ? null : row[field] ? L('有', 'yes') : L('无', 'no');
     if (field === 'lane_duration') return row[field] ?? row.pit_duration;
     return row[field];
   };
-  $('archivePreview').innerHTML = `<table class="sports-table archive-table"><caption>预览 ${Math.min(12, items.length)} / ${num.format(items.length)} 条</caption>
+  $('archivePreview').innerHTML = `<table class="sports-table archive-table"><caption>${L(`预览 ${Math.min(12, items.length)} / ${num.format(items.length)} 条`, `Showing ${Math.min(12, items.length)} of ${num.format(items.length)}`)}</caption>
     <thead><tr>${fields.map(([label]) => `<th scope="col">${label}</th>`).join('')}</tr></thead>
     <tbody>${items.slice(0, 12).map(row => `<tr>${fields.map(([, field]) => `<td>${safe(value(row, field))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
@@ -277,7 +277,7 @@ async function refresh(manual = false) {
   state.checked = Date.now();
   const button = $('syncSeason');
   button.disabled = true;
-  button.textContent = '正在检查…';
+  button.textContent = L('正在检查…', 'Checking…');
   try {
     const [calendar, [drivers, teams]] = await Promise.all([api(), fetchStandings()]);
     const rounds = calendar.RaceTable.Races.map(convertRace);
@@ -301,9 +301,9 @@ async function refresh(manual = false) {
     try { localStorage.setItem(CACHE, JSON.stringify({data: state.data, checked: state.checked})); }
     catch { /* Storage is optional; the published archive remains available. */ }
     render();
-    button.textContent = '已核对 · 再次刷新';
+    button.textContent = L('已核对 · 再次刷新', 'Up to date · check again');
   } catch {
-    button.textContent = '↻ 暂用已保存数据 · 重试';
+    button.textContent = L('↻ 暂用已保存数据 · 重试', '↻ Using saved data · retry');
   } finally {
     button.disabled = state.refreshing = false;
   }
@@ -347,7 +347,7 @@ async function start() {
     setInterval(() => { if (!document.hidden) void refresh(); }, INTERVAL);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) void refresh(); });
   } catch {
-    $('seasonLoading').textContent = '赛季档案暂时无法读取，请刷新页面重试。';
+    $('seasonLoading').textContent = L('赛季档案暂时无法读取，请刷新页面重试。', 'Season data failed to load. Please reload the page.');
   }
 }
 

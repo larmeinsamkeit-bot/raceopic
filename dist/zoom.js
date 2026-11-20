@@ -16,7 +16,7 @@ const mapZoom = {
 function zoomAttach(view, drivers, replaying) {
   const svg = $('trackMap').querySelector('svg');
   svg.setAttribute('tabindex', '0');
-  svg.setAttribute('aria-roledescription', '可缩放赛道图');
+  svg.setAttribute('aria-roledescription', L('可缩放赛道图', 'zoomable track map'));
   const centre = {k: 1, cx: view[0] + view[2] / 2, cy: view[1] + view[3] / 2};
   if (mapZoom.frame !== null) cancelAnimationFrame(mapZoom.frame);
   Object.assign(mapZoom, {
@@ -29,7 +29,7 @@ function zoomAttach(view, drivers, replaying) {
   $('zoomFollowWrap').hidden = !replaying;
   if (replaying) {
     const keep = mapZoom.follow;
-    follow.replaceChildren(option('', '不跟随'), ...drivers.map((d, i) => option(i, d.code)));
+    follow.replaceChildren(option('', L('不跟随', 'Off')), ...drivers.map((d, i) => option(i, d.code)));
     follow.value = keep ?? '';
   } else {
     mapZoom.follow = null;

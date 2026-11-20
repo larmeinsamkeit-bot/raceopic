@@ -4,73 +4,92 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="用历届大奖赛的圈速、分段、遥测和轮胎数据比较 F1 车手">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Raceopic">
+  <meta property="og:title" content="Raceopic · F1 lap and telemetry lab">
+  <meta property="og:description" content="Where does the lap time between two F1 drivers come from? Qualifying telemetry, race pace, tyres and a two-car replay on one page.">
+  <meta property="og:url" content="https://larmeinsamkeit-bot.github.io/raceopic/index.html">
+  <meta property="og:image" content="https://larmeinsamkeit-bot.github.io/raceopic/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Raceopic: the median race-lap gap between two Formula 1 drivers, with the driver comparison controls">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="title-en" content="Raceopic · F1 lap and telemetry lab">
   <title>Raceopic · F1 数据分析</title>
   <link rel="stylesheet" href="style.css?v=season-lab">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Noto+Sans+SC:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="pitwall.css">
+  <script src="i18n.js" defer></script>
   <script src="replay.js" defer></script>
   <script src="zoom.js" defer></script>
+  <script src="trace.js" defer></script>
+  <script src="story.js" defer></script>
+  <script src="deg.js" defer></script>
+  <script src="weather.js" defer></script>
+  <script src="racereplay.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
   <header class="masthead">
     <a href="#" class="wordmark">Race<span>opic</span></a>
-    <nav class="tabs" aria-label="主导航">
-      <a href="#track" aria-current="page">遥测</a>
-      <a href="#overview">正赛节奏</a>
-      <a href="#strategy">进站情景</a>
-      <a href="season.html">2026 赛季</a>
-      <a href="#method">方法</a>
+    <nav class="tabs" aria-label="主导航" data-en-label="Main">
+      <a data-en="Telemetry" href="#track" aria-current="page">遥测</a>
+      <a data-en="Race pace" href="#overview">正赛节奏</a>
+      <a data-en="Race replay" href="#raceReplay">整场回放</a>
+      <a data-en="Pit what-if" href="#strategy">进站情景</a>
+      <a data-en="2026 season" href="season.html">2026 赛季</a>
+      <a data-en="Method" href="#method">方法</a>
     </nav>
-    <span class="source"><span class="status-dot" aria-hidden="true"></span>历史赛事数据</span>
+    <span class="source"><span class="status-dot" aria-hidden="true"></span><span data-en="Historical race data">历史赛事数据</span></span>
+    <a id="langToggle" class="lang-toggle" href="?lang=en" lang="en">EN</a>
   </header>
 
-  <div id="loading" role="status" class="loading">正在读取历史赛事数据…</div>
+  <div id="loading" role="status" class="loading" data-en="Loading race data…">正在读取历史赛事数据…</div>
 
   <div id="dashboard" class="layout" hidden>
-    <section class="deck deck-compare" aria-label="对比设置">
+    <section class="deck deck-compare" aria-label="对比设置" data-en-label="Comparison">
       <div class="deck-block">
-        <span class="step">01 · 赛事</span>
-        <label class="field"><span class="sr-only">大奖赛</span><select id="race" aria-label="大奖赛"></select></label>
+        <span class="step" data-en="01 · Race">01 · 赛事</span>
+        <label class="field"><span class="sr-only" data-en="Grand Prix">大奖赛</span><select id="race" aria-label="大奖赛" data-en-label="Grand Prix"></select></label>
         <span class="coverage" id="coverage"></span>
         <p id="eventStatus" class="note event-status" role="status"></p>
       </div>
       <div class="deck-block">
-        <span class="step">02 · 车手</span>
+        <span class="step" data-en="02 · Drivers">02 · 车手</span>
         <div class="duel">
-          <label class="duel-side duel-a"><span class="duel-role">主车手</span><select id="driverA" aria-label="主车手"></select></label>
-          <span class="vs" aria-hidden="true">对</span>
-          <label class="duel-side duel-b"><span class="duel-role">对比车手</span><select id="driverB" aria-label="对比车手"></select></label>
+          <label class="duel-side duel-a"><span class="duel-role" data-en="Driver">主车手</span><select id="driverA" aria-label="主车手" data-en-label="Driver"></select></label>
+          <span class="vs" aria-hidden="true" data-en="vs">对</span>
+          <label class="duel-side duel-b"><span class="duel-role" data-en="Compared with">对比车手</span><select id="driverB" aria-label="对比车手" data-en-label="Compared driver"></select></label>
         </div>
       </div>
       <div class="deck-block">
-        <span class="step">03 · 排位圈</span>
-        <label class="lap-pick lap-a"><span id="telemetryA"></span><select id="qualiA" aria-label="主车手排位赛圈"></select></label>
-        <label class="lap-pick lap-b"><span id="telemetryB"></span><select id="qualiB" aria-label="对比车手排位赛圈"></select></label>
+        <span class="step" data-en="03 · Qualifying laps">03 · 排位圈</span>
+        <label class="lap-pick lap-a"><span id="telemetryA"></span><select id="qualiA" aria-label="主车手排位赛圈" data-en-label="Driver qualifying lap"></select></label>
+        <label class="lap-pick lap-b"><span id="telemetryB"></span><select id="qualiB" aria-label="对比车手排位赛圈" data-en-label="Compared driver qualifying lap"></select></label>
       </div>
       <div class="deck-block">
-        <span class="step">04 · 正赛筛选</span>
-        <label class="toggle"><input id="clean" type="checkbox" checked><span>排除异常圈</span></label>
-        <label class="toggle"><input id="sameTyre" type="checkbox"><span>仅比较相同配方</span></label>
+        <span class="step" data-en="04 · Race filters">04 · 正赛筛选</span>
+        <label class="toggle"><input id="clean" type="checkbox" checked><span data-en="Exclude outlier laps">排除异常圈</span></label>
+        <label class="toggle"><input id="sameTyre" type="checkbox"><span data-en="Same compound only">仅比较相同配方</span></label>
       </div>
       <dl class="tower">
-        <div><dt>最快圈</dt><dd id="fastest"></dd><dd class="sub" id="fastestDriver"></dd></div>
-        <div><dt>圈速差中间 50%</dt><dd id="spread"></dd><dd class="sub">主车手 − 对比车手</dd></div>
-        <div><dt>配对样本</dt><dd id="samples"></dd><dd class="sub" id="sampleNote"></dd></div>
+        <div><dt data-en="Fastest lap">最快圈</dt><dd id="fastest"></dd><dd class="sub" id="fastestDriver"></dd></div>
+        <div><dt data-en="Middle 50% of gaps">圈速差中间 50%</dt><dd id="spread"></dd><dd class="sub" data-en="Driver − compared">主车手 − 对比车手</dd></div>
+        <div><dt data-en="Paired laps">配对样本</dt><dd id="samples"></dd><dd class="sub" id="sampleNote"></dd></div>
       </dl>
-      <button id="copyLink" class="export ghost" type="button">复制当前对比链接</button>
-      <button id="export" class="export" disabled>导出正赛 CSV</button>
+      <button id="copyLink" class="export ghost" type="button" data-en="Copy link to this comparison">复制当前对比链接</button>
+      <button id="export" class="export" disabled data-en="Export race CSV">导出正赛 CSV</button>
     </section>
 
     <main class="stage">
       <section class="verdict" aria-labelledby="verdictTitle">
-        <h1 id="verdictTitle">每一圈，都有答案。</h1>
+        <h1 id="verdictTitle" data-en="Every lap has an answer.">每一圈，都有答案。</h1>
         <div class="verdict-row">
           <p class="verdict-number" id="gap" aria-live="polite"></p>
           <div class="verdict-copy">
-            <p class="kicker">正赛配对圈速差中位数</p>
+            <p class="kicker" data-en="Median paired race-lap gap">正赛配对圈速差中位数</p>
             <p class="verdict-text" id="gapDriver"></p>
             <p class="verdict-legend"><span class="driver-primary" id="paceA"></span><span class="driver-secondary" id="paceB"></span></p>
           </div>
@@ -80,54 +99,64 @@
       <section class="chapter" id="track" aria-labelledby="trackTitle">
         <header class="chapter-head">
           <span class="chapter-mark">A</span>
-          <div class="chapter-title"><h2 id="trackTitle">时间差出现在哪里</h2><p>排位赛遥测 · 分段、行车线与同步回放</p></div>
-          <div class="segmented" role="group" aria-label="赛道图模式">
-            <button id="dominance" aria-pressed="true">分段优势</button>
-            <button id="lines" aria-pressed="false">行车线</button>
-            <button id="replayMode" aria-pressed="false">双车回放</button>
+          <div class="chapter-title"><h2 id="trackTitle" data-en="Where the gap is made">时间差出现在哪里</h2><p data-en="Qualifying telemetry · sectors, racing lines and a synchronised replay">排位赛遥测 · 分段、行车线与同步回放</p></div>
+          <div class="segmented" role="group" aria-label="赛道图模式" data-en-label="Map view">
+            <button id="dominance" aria-pressed="true" data-en="Sectors">分段优势</button>
+            <button id="miniMode" aria-pressed="false" data-en="Mini-sectors">迷你分段</button>
+            <button id="lines" aria-pressed="false" data-en="Racing lines">行车线</button>
+            <button id="replayMode" aria-pressed="false" data-en="Replay">双车回放</button>
           </div>
         </header>
-        <div id="trackUnavailable" class="empty-state" hidden>这组车手缺少可对齐的排位遥测。要查看排位轨迹或回放，请从「有排位遥测」分组选择两位车手。</div>
+        <div id="trackUnavailable" class="empty-state" hidden data-en="These drivers lack aligned qualifying telemetry. Pick two from the “With qualifying telemetry” group to see their laps and replay.">这组车手缺少可对齐的排位遥测。要查看排位轨迹或回放，请从「有排位遥测」分组选择两位车手。</div>
         <div id="trackContent" class="track-stage">
           <div class="map-box">
             <div class="map-label"><strong id="circuit"></strong><span id="focusCaption"></span></div>
-            <div class="zoom-bar" role="group" aria-label="赛道图缩放">
-              <button type="button" id="zoomOut" aria-label="缩小">−</button>
+            <div class="zoom-bar" role="group" aria-label="赛道图缩放" data-en-label="Map zoom">
+              <button type="button" id="zoomOut" aria-label="缩小" data-en-label="Zoom out">−</button>
               <output id="zoomLevel" aria-live="polite">1.0×</output>
-              <button type="button" id="zoomIn" aria-label="放大">+</button>
-              <button type="button" id="zoomReset" class="zoom-text">全图</button>
-              <label id="zoomFollowWrap" class="zoom-follow" hidden>跟随 <select id="zoomFollow" aria-label="镜头跟随车手"></select></label>
+              <button type="button" id="zoomIn" aria-label="放大" data-en-label="Zoom in">+</button>
+              <button type="button" id="zoomReset" class="zoom-text" data-en="Full map">全图</button>
+              <label id="zoomFollowWrap" class="zoom-follow" hidden><span data-en="Follow">跟随</span> <select id="zoomFollow" aria-label="镜头跟随车手" data-en-label="Camera follows"></select></label>
             </div>
             <div id="trackMap" class="track-map"></div>
             <div id="mapHint" class="map-hint"></div>
             <div id="replayControls" class="replay-controls" hidden>
               <div class="replay-buttons">
-                <button type="button" id="replayPlay">▶ 播放</button>
-                <button type="button" id="replayReset">↺ 重置</button>
-                <select id="replayRate" aria-label="回放速度">
+                <button type="button" id="replayPlay" data-en="▶ Play">▶ 播放</button>
+                <button type="button" id="replayReset" data-en="↺ Reset">↺ 重置</button>
+                <select id="replayRate" aria-label="回放速度" data-en-label="Replay speed">
                   <option value="0.25">0.25×</option><option value="0.5">0.5×</option>
                   <option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option>
                 </select>
               </div>
-              <label class="scrubber"><span>单圈计时 <span id="replayClock"></span></span><input id="replayTime" type="range" min="0" step="1" aria-label="回放时间"></label>
+              <label class="scrubber"><span><span data-en="Lap clock">单圈计时</span> <span id="replayClock"></span></span><input id="replayTime" type="range" min="0" step="1" aria-label="回放时间" data-en-label="Replay time"></label>
             </div>
           </div>
           <div class="telemetry-side">
             <div id="sectorCards" class="sector-cards"></div>
-            <button id="wholeTrack" class="text-link" hidden>↺ 查看整条赛道</button>
+            <button id="wholeTrack" class="text-link" hidden data-en="↺ Whole lap">↺ 查看整条赛道</button>
             <div id="positionTelemetry">
-              <div class="telemetry-head"><h3>同位置速度</h3><span class="label">km/h</span></div>
+              <div class="telemetry-head"><h3 data-en="Speed at the same point">同位置速度</h3><span class="label">km/h</span></div>
               <div id="speedChart" class="speed-chart"></div>
-              <label class="scrubber"><span>沿赛道位置 <output id="progress"></output></span><input id="distance" type="range" min="0" max="180" value="0" aria-label="赛道位置"></label>
+              <label class="scrubber"><span><span data-en="Position on the lap">沿赛道位置</span> <output id="progress"></output></span><input id="distance" type="range" min="0" max="180" value="0" aria-label="赛道位置" data-en-label="Position on the lap"></label>
               <div id="readout" class="readout"></div>
             </div>
             <div id="replayTelemetry" hidden>
-              <div class="telemetry-head"><h3>同时刻遥测</h3></div>
+              <div class="telemetry-head"><h3 data-en="Telemetry at the same moment">同时刻遥测</h3></div>
               <div id="replayReadout" class="readout"></div>
-              <label class="bend-picker">弯区对比 <select id="replayBend" aria-label="回放弯区"></select></label>
+              <label class="bend-picker"><span data-en="Corner">弯区对比</span> <select id="replayBend" aria-label="回放弯区" data-en-label="Replay corner"></select></label>
               <div id="bendMetrics"></div>
             </div>
           </div>
+        </div>
+        <div class="trace-block" id="traceBlock">
+          <div class="trace-head">
+            <h3 data-en="Gap, speed, throttle and brake along the lap">逐段时间差与操作</h3>
+            <span class="trace-legend" id="traceLegend"></span>
+            <output class="trace-readout" id="traceReadout"></output>
+          </div>
+          <div class="trace-chart" id="traceChart" role="img" aria-label="沿赛道距离的累积时间差、车速、油门与制动" data-en-label="Cumulative gap, speed, throttle and brake along the lap"></div>
+          <p class="trace-summary" id="traceSummary" aria-live="polite"></p>
         </div>
         <p id="telemetryNote" class="note"></p>
       </section>
@@ -135,35 +164,71 @@
       <section class="chapter" id="overview" aria-labelledby="paceTitle">
         <header class="chapter-head">
           <span class="chapter-mark">B</span>
-          <div class="chapter-title"><h2 id="paceTitle">逐圈节奏</h2><p>正赛计时 · 圈速、每圈差值与轮胎，共用同一条圈数轴</p></div>
+          <div class="chapter-title"><h2 id="paceTitle" data-en="Lap by lap">逐圈节奏</h2><p data-en="Race timing · lap times, per-lap gap and tyres on one lap axis">正赛计时 · 圈速、每圈差值与轮胎，共用同一条圈数轴</p></div>
         </header>
         <div class="race-strip">
-          <div class="strip-label">圈速 / 秒</div>
+          <div class="strip-label" data-en="Lap time / s">圈速 / 秒</div>
           <div id="chart" class="chart"></div>
-          <div class="strip-label delta-head"><span>每圈差值</span><span id="deltaLegend"></span></div>
+          <div class="strip-label delta-head"><span data-en="Per-lap gap">每圈差值</span><span id="deltaLegend"></span></div>
           <div id="deltaChart" class="delta-chart"></div>
-          <div class="strip-label">轮胎</div>
+          <div class="strip-label delta-head"><span data-en="Weather">天气</span><span id="weatherLegend"></span></div>
+          <div id="weatherChart" class="weather-chart"></div>
+          <div class="strip-label" data-en="Tyres">轮胎</div>
           <div id="stints" class="stints-aligned"></div>
         </div>
-        <div id="tooltip" class="tooltip" aria-live="polite">在图上移动或轻触，查看单圈数据。</div>
+        <div id="tooltip" class="tooltip" aria-live="polite" data-en="Move over or tap the chart for a lap.">在图上移动或轻触，查看单圈数据。</div>
         <p class="note" id="stintNote"></p>
+        <div class="story-block deg-block">
+          <div class="trace-head"><h3 data-en="Tyre degradation by stint">各段轮胎衰退</h3></div>
+          <div class="deg-grid">
+            <div id="degChart" class="deg-chart"></div>
+            <div id="degTable" class="deg-table-wrap"></div>
+          </div>
+          <p class="note" id="degNote"></p>
+        </div>
+        <div class="story-block">
+          <div class="trace-head"><h3 id="storyTitle">比赛进程 · 与领先者的差距</h3><output class="trace-readout" id="storyReadout"></output></div>
+          <div id="storyChart" class="story-chart"></div>
+          <p class="note" id="storyNote"></p>
+        </div>
+      </section>
+
+      <section class="chapter" id="raceReplay" aria-labelledby="rrTitle" hidden>
+        <header class="chapter-head">
+          <span class="chapter-mark">▶</span>
+          <div class="chapter-title"><h2 id="rrTitle" data-en="Whole-race replay">整场回放</h2>
+            <p data-en="Every car on the track with the running order, gaps and tyres, rebuilt from lap times">全场车辆、实时排名、差距与轮胎，由每圈圈速重建</p></div>
+        </header>
+        <div class="rr-stage">
+          <div class="rr-map" id="rrMap"></div>
+          <ol class="rr-board" id="rrBoard" aria-live="off"></ol>
+        </div>
+        <div class="rr-controls">
+          <button type="button" id="rrPlay">▶ 播放</button>
+          <select id="rrRate" aria-label="回放速度" data-en-label="Replay speed">
+            <option value="15">15×</option><option value="30">30×</option><option value="60" selected>60×</option><option value="120">120×</option>
+          </select>
+          <output id="rrClock"></output>
+          <input id="rrTime" type="range" min="0" max="1000" value="0" aria-label="比赛进度" data-en-label="Race progress">
+        </div>
+        <p class="note" id="rrNote"></p>
       </section>
 
       <section class="chapter strategy" id="strategy" aria-labelledby="stratTitle">
         <header class="chapter-head">
           <span class="chapter-mark">C</span>
-          <div class="chapter-title"><h2 id="stratTitle">如果换一圈进站？</h2><p>干地模型 · 只移动一次停站，保持配方顺序</p></div>
+          <div class="chapter-title"><h2 id="stratTitle" data-en="What if the stop came on another lap?">如果换一圈进站？</h2><p data-en="Dry-race model · moves one stop, keeps the compound order">干地模型 · 只移动一次停站，保持配方顺序</p></div>
         </header>
         <div id="strategyUnavailable" class="empty-state" hidden></div>
         <div id="strategyControls" class="strategy-body">
           <div class="strategy-input">
-            <div class="slider-title"><label>实际停站 <select id="stop"></select></label><strong>第 <output id="pitLabel"></output> 圈</strong></div>
-            <input id="pit" aria-label="模拟进站圈" type="range">
-            <div class="range-labels"><span>较早进站</span><span>较晚进站</span></div>
-            <button id="reset" class="text-link">↺ 恢复实际进站圈</button>
+            <div class="slider-title"><label><span data-en="Actual stop">实际停站</span> <select id="stop"></select></label><strong><span data-en="Lap">第</span> <output id="pitLabel"></output> <span data-en="">圈</span></strong></div>
+            <input id="pit" aria-label="模拟进站圈" data-en-label="Simulated stop lap" type="range">
+            <div class="range-labels"><span data-en="Earlier">较早进站</span><span data-en="Later">较晚进站</span></div>
+            <button id="reset" class="text-link" data-en="↺ Back to the actual stop">↺ 恢复实际进站圈</button>
           </div>
           <div class="strategy-output">
-            <span class="kicker">相对实际策略的估算用时变化</span>
+            <span class="kicker" data-en="Estimated time change vs the actual strategy">相对实际策略的估算用时变化</span>
             <strong id="simDelta"></strong>
             <span id="simTag"></span>
             <p class="note" id="simDescription"></p>
@@ -173,19 +238,20 @@
 
       <section class="chapter method" id="method" aria-labelledby="methodTitle">
         <header class="chapter-head">
-          <span class="chapter-mark">注</span>
-          <div class="chapter-title"><h2 id="methodTitle">数据来源与分析口径</h2></div>
+          <span class="chapter-mark" data-en="i">注</span>
+          <div class="chapter-title"><h2 id="methodTitle" data-en="Data and method">数据来源与分析口径</h2></div>
         </header>
         <div class="method-columns">
-          <p>正赛圈速、分段、轮胎、进站和赛会消息来自 <a href="https://openf1.org/docs/">OpenF1</a>；2026 排位遥测来自 <a href="https://f1archive.org/docs">F1Archive</a>，往季精选的遥测来自 OpenF1。正赛可选有逐圈记录的车手；排位回放可选有完整轨迹及车载数据的车手。</p>
-          <p>逐圈差值以正赛同圈配对，默认为两人均有效的圈。异常圈包括发车、进出站、缺失计时和整场减速区间；局部黄旗、车流和天气差异仍可能影响结果。中间 50% 是第 25 至第 75 百分位数；相同配方筛选只作用于配对统计。</p>
-          <p>赛道优势取所选两圈的 S1–S3 计时差；分段显示位置按参考圈近似映射。行车线由公开定位样本经过投影对齐与插值得出。样本存在位置和时间误差，不能用来判断厘米级走线或精确制动点。选择赛段可放大重叠的轨迹。</p>
-          <p>双车回放把各自的排位圈从 0 秒对齐，使用各自的采样时间插值重建位置。两圈可能在不同时间跑出。弯区根据参考轨迹的曲率自动选取，进出弯速度在对应窗口边界采样。</p>
-          <p>干地进站估算用全场有效样本拟合车手基准、比赛圈数趋势、配方差异和胎龄变化。保持轮胎顺序与进站次数，比较移动一次进站后的模型用时。进站损失按相同处理；模型未估计交通、暖胎或安全车收益。所示拟合误差为样本内单圈绝对残差中位数。雨战或缺少配方覆盖时暂停估算。</p>
+          <p data-en-html="Race laps, sectors, tyres, pit stops and race control come from <a href=&quot;https://openf1.org/docs/&quot;>OpenF1</a>; 2026 qualifying telemetry from <a href=&quot;https://f1archive.org/docs&quot;>F1Archive</a>, earlier seasons from OpenF1. Any driver with lap-by-lap race data can be compared; the replay needs full position and car data.">正赛圈速、分段、轮胎、进站和赛会消息来自 <a href="https://openf1.org/docs/">OpenF1</a>；2026 排位遥测来自 <a href="https://f1archive.org/docs">F1Archive</a>，往季精选的遥测来自 OpenF1。正赛可选有逐圈记录的车手；排位回放可选有完整轨迹及车载数据的车手。</p>
+          <p data-en-html="Per-lap gaps pair the same race lap, by default only laps clean for both. Outliers are starts, pit laps, untimed laps and full-course neutralisations; local yellows, traffic and weather can still matter. The middle 50% is the 25th–75th percentile; the same-compound filter only affects paired statistics.">逐圈差值以正赛同圈配对，默认为两人均有效的圈。异常圈包括发车、进出站、缺失计时和整场减速区间；局部黄旗、车流和天气差异仍可能影响结果。中间 50% 是第 25 至第 75 百分位数；相同配方筛选只作用于配对统计。</p>
+          <p data-en-html="Sector advantage uses the S1–S3 times of the two laps; sector positions on the map are approximate. Racing lines come from public position samples, projected and interpolated: they carry position and timing error, so they cannot show centimetre lines or exact braking points.">赛道优势取所选两圈的 S1–S3 计时差；分段显示位置按参考圈近似映射。行车线由公开定位样本经过投影对齐与插值得出。样本存在位置和时间误差，不能用来判断厘米级走线或精确制动点。选择赛段可放大重叠的轨迹。</p>
+          <p data-en-html="The replay starts both laps at 0 s and rebuilds positions from each lap&#39;s own sample times; the two laps may have been set at different times. Corners are picked from the curvature of the reference lap; entry and exit speeds are read at the window edges.">双车回放把各自的排位圈从 0 秒对齐，使用各自的采样时间插值重建位置。两圈可能在不同时间跑出。弯区根据参考轨迹的曲率自动选取，进出弯速度在对应窗口边界采样。</p>
+          <p data-en-html="The time gap along the lap is integrated from car speed (each equal slice of the lap takes time proportional to 1 / speed) and scaled to the official lap times, so it ends exactly on the real difference; mini-sectors are 24 equal slices of that gap. The race story sums lap times, filling the few untimed laps with that lap&#39;s field median.">时间差曲线由车速积分得出（每一等长路段的用时与 1 / 车速成正比），并按官方单圈时间缩放，终点差距与实际圈速差完全一致；迷你分段把这条曲线等分为 24 段。比赛进程图累加圈速，少数缺失计时的圈以同圈全场中位数补上。</p>
+          <p data-en-html="The dry pit model fits driver baselines, race-lap trend, compound offsets and tyre-age effects on the whole field, then compares model time with one stop moved. Pit loss is held equal; traffic, warm-up and safety-car gains are not modelled. The error shown is the median in-sample absolute lap residual. It pauses for wet races or missing compounds.">干地进站估算用全场有效样本拟合车手基准、比赛圈数趋势、配方差异和胎龄变化。保持轮胎顺序与进站次数，比较移动一次进站后的模型用时。进站损失按相同处理；模型未估计交通、暖胎或安全车收益。所示拟合误差为样本内单圈绝对残差中位数。雨战或缺少配方覆盖时暂停估算。</p>
         </div>
       </section>
 
-      <footer class="colophon"><span class="wordmark">Race<span>opic</span></span><span>独立赛车数据项目 · 非官方 F1 产品</span></footer>
+      <footer class="colophon"><span class="wordmark">Race<span>opic</span></span><span data-en="Independent racing data project · not an official F1 product">独立赛车数据项目 · 非官方 F1 产品</span></footer>
     </main>
   </div>
 </body>

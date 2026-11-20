@@ -20,8 +20,9 @@ COMPOUND = {"SOFT": "S", "MEDIUM": "M", "HARD": "H", "INTERMEDIATE": "I", "WET":
 FULL_DISTANCE = .9  # a driver counts once they complete 90% of the laps
 
 
-def race_session(cache, year, location):
-    sessions = fetch(cache, "sessions", {"year": year, "location": location, "session_name": "Race"})
+def race_session(cache, year, circuit):
+    # Circuit names are stable across years; locations are not (Abu Dhabi: "Yas Island", then "Yas Marina").
+    sessions = fetch(cache, "sessions", {"year": year, "circuit_short_name": circuit, "session_name": "Race"})
     return sessions[0] if sessions else None
 
 
@@ -122,11 +123,11 @@ def drop_empty(folder):
             path.unlink()
 
 
-def practice_runs(cache, year, location):
+def practice_runs(cache, year, circuit):
     """Long runs (5+ representative laps on one set) from every practice session of the weekend."""
     folder = cache / f"practice-{year}"
     folder.mkdir(parents=True, exist_ok=True)
-    sessions = [s for s in fetch(folder, "sessions", {"year": year, "location": location})
+    sessions = [s for s in fetch(folder, "sessions", {"year": year, "circuit_short_name": circuit})
                 if s["session_name"].startswith("Practice")]
     runs = []
     for session in sessions:
@@ -153,6 +154,25 @@ def practice_runs(cache, year, location):
                              "driver": stint["driver_number"], "laps": rows})
     drop_empty(folder)
     return runs
+
+
+def practice_status(cache, year, circuit):
+    """What practice has produced so far: sessions run, dry long runs, and wet-tyre stints."""
+    folder = cache / f"practice-{year}"
+    folder.mkdir(parents=True, exist_ok=True)
+    sessions = [s for s in fetch(folder, "sessions", {"year": year, "circuit_short_name": circuit})
+                if s["session_name"].startswith("Practice")]
+    ran, wet = [], 0
+    for session in sessions:
+        laps = fetch(folder, "laps", {"session_key": session["session_key"]})
+        if any(lap.get("lap_duration") for lap in laps):
+            ran.append(session["session_name"])
+        wet += sum((s.get("compound") or "").upper() in ("INTERMEDIATE", "WET")
+                   for s in fetch(folder, "stints", {"session_key": session["session_key"]}))
+    drop_empty(folder)
+    runs = practice_runs(cache, year, circuit)
+    state = "used" if runs else "wet" if ran and wet else "no_long_runs" if ran else "not_run"
+    return {"state": state, "sessions_run": ran, "dry_long_runs": len(runs), "wet_stints": wet}
 
 
 def degradation_from_runs(runs):
@@ -284,9 +304,9 @@ def plans_to_prediction(plans, laps):
     }
 
 
-def practice_model(cache, year, location, laps, prior_session):
+def practice_model(cache, year, circuit, laps, prior_session):
     """Simulated prediction from practice degradation, or None when practice has no usable long runs."""
-    runs = practice_runs(cache, year, location)
+    runs = practice_runs(cache, year, circuit)
     prior = race_pace(cache, prior_session)
     if not prior or not runs:
         return None
@@ -337,19 +357,32 @@ def blend(history_prediction, practice_prediction, weight):
     }
 
 
-def full_model(cache, location, year, laps, history, weight):
+def full_model(cache, circuit, year, laps, history, weight):
     """History prior blended with this year's practice simulation (prior race = latest edition in history)."""
     history_prediction = model(history, laps)
-    practice = practice_model(cache, year, location, laps, history[-1]["session_key"])
+    practice = practice_model(cache, year, circuit, laps, history[-1]["session_key"])
     if practice is None:
         return history_prediction, None
     return blend(history_prediction, practice, weight), practice
 
 
+def write_index(folder):
+    """List every forecast in the folder, oldest race first, for the season page."""
+    entries = []
+    for path in sorted(folder.glob("*.json")):
+        if path.name == "index.json":
+            continue
+        race = json.loads(path.read_text())["race"]
+        entries.append({"file": path.name, "year": race["year"], "circuit": race.get("circuit") or race["location"],
+                        "date_start": race["date_start"]})
+    entries.sort(key=lambda entry: entry["date_start"] or "")
+    (folder / "index.json").write_text(json.dumps(entries, ensure_ascii=False, indent=2) + "\n")
+
+
 def predict(args):
     history = []
     for offset, year in enumerate(sorted(args.history)):
-        session = race_session(args.cache, year, args.location)
+        session = race_session(args.cache, year, args.circuit)
         if not session:
             print(f"{year}: no race session, skipped")
             continue
@@ -368,15 +401,27 @@ def predict(args):
         target_race, earlier = history[i], history[:i]
         row = {"target_year": target_race["year"], "trained_on": [r["year"] for r in earlier], "by_weight": {}}
         for weight in WEIGHTS:
-            guess, used = full_model(args.cache, args.location, target_race["year"], target_race["laps"],
+            guess, used = full_model(args.cache, args.circuit, target_race["year"], target_race["laps"],
                                      earlier, weight)
             if weight == 0 or used:
                 row["by_weight"][str(weight)] = score(guess, target_race["rows"])
         row["history_only"] = row["by_weight"]["0.0"]
         backtests.append(row)
-    usable = [w for w in WEIGHTS if backtests and all(str(w) in b["by_weight"] for b in backtests)]
-    mean_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for b in backtests) / len(backtests), 3)
+    # Pick the weight across every circuit's backtests, not this circuit's alone: with two editions
+    # per circuit, a per-circuit choice mostly fits noise. Other forecasts in the folder add their rows.
+    pooled = [(args.circuit, b) for b in backtests]
+    for path in sorted(args.output.parent.glob("*.json")):
+        if path.name in ("index.json", args.output.name):
+            continue
+        other = json.loads(path.read_text())
+        circuit = other["race"].get("circuit") or other["race"]["location"]
+        if circuit != args.circuit:
+            pooled += [(circuit, b) for b in other.get("backtests", []) if b.get("by_weight")]
+    usable = [w for w in WEIGHTS if pooled and all(str(w) in b["by_weight"] for _, b in pooled)]
+    mean_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for _, b in pooled) / len(pooled), 3)
                   for w in usable}
+    own_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for b in backtests) / len(backtests), 3)
+                 for w in usable if all(str(w) in b["by_weight"] for b in backtests)}
     chosen = args.practice_weight if args.practice_weight is not None else \
         (float(min(mean_brier, key=mean_brier.get)) if mean_brier else 0.)
     for row in backtests:
@@ -385,14 +430,16 @@ def predict(args):
         for weight, result in row["by_weight"].items():
             print(f"  practice {weight}: stops {result['stop_count_hit_rate']}, window {result['first_stop_in_window']}, "
                   f"MAE {result['first_stop_mae_laps']}, Brier {result['stop_count_brier']}")
-    print("mean Brier by practice weight:", mean_brier, "-> using", chosen)
+    print("pooled over", [f"{c} {b['target_year']}" for c, b in pooled])
+    print("mean Brier by practice weight (pooled):", mean_brier, "this circuit:", own_brier, "-> using", chosen)
 
-    prediction, practice = full_model(args.cache, args.location, args.year, args.laps, history, chosen)
-    print("practice data:", "used" if practice else "not available yet, history only")
-    target = race_session(args.cache, args.year, args.location)
+    prediction, practice = full_model(args.cache, args.circuit, args.year, args.laps, history, chosen)
+    status = practice_status(args.cache, args.year, args.circuit)
+    print("practice data:", "used" if practice else "not used, history only", status)
+    target = race_session(args.cache, args.year, args.circuit)
     latest = backtests[-1] if backtests else None
     forecast = {
-        "race": {"year": args.year, "location": args.location, "laps": args.laps,
+        "race": {"year": args.year, "circuit": args.circuit, "location": args.circuit, "laps": args.laps,
                  "session_key": target and target["session_key"],
                  "date_start": target and target["date_start"]},
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -402,10 +449,13 @@ def predict(args):
                    if practice else
                    "Recency-weighted frequencies over full-distance runners in earlier editions; "
                    "practice data not available yet."),
+        "scenario": "dry",
         "uses_practice": practice is not None and chosen > 0,
+        "practice_status": status,
         "practice_weight": chosen,
-        "weight_selection": {"candidates": list(WEIGHTS), "mean_brier": mean_brier,
-                             "rule": "lowest mean stop-count Brier score across backtests"},
+        "weight_selection": {"candidates": list(WEIGHTS), "mean_brier": mean_brier, "this_circuit_brier": own_brier,
+                             "pooled_over": [{"circuit": c, "year": b["target_year"]} for c, b in pooled],
+                             "rule": "lowest mean stop-count Brier score across every circuit's backtests"},
         "practice": practice,
         "history": [{k: v for k, v in race.items() if k != "rows"} for race in history],
         "prediction": prediction,
@@ -416,15 +466,26 @@ def predict(args):
             "target_year": latest["target_year"], "trained_on": latest["trained_on"], "score": latest["with_practice"]},
         "caveats": ["Earlier editions ran under different technical rules and tyre allocations.",
                     "Safety cars and red flags are not modelled; they move stop laps.",
+                    "The forecast assumes a dry race: none of the earlier editions was wet, so there is no history "
+                    "to forecast a wet strategy from. A wet or mixed race is scored but left out of the season record.",
                     "Pit loss uses the median pit-lane time of the previous edition.",
                     "Las Vegas track evolution is strong: practice long runs often get faster with tyre age, "
                     "so degradation is floored and the simulation mostly weighs pit loss against tyre life.",
-                    "Only two editions can be backtested; the chosen weight is a small-sample choice."],
+                    "Only a few editions can be backtested; the chosen weight is a small-sample choice.",
+                    *args.note],
+        "notes_zh": args.note_zh,
         "result": None,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(forecast, ensure_ascii=False, indent=2) + "\n")
+    write_index(args.output.parent)
     print(json.dumps(forecast["prediction"], indent=2))
+
+
+def race_conditions(rows):
+    """'dry', 'mixed' or 'wet' from the tyres the full-distance runners used."""
+    wet = sum(any(c in row["sequence"].split("-") for c in ("I", "W")) for row in rows.values())
+    return "dry" if wet == 0 else "wet" if wet == len(rows) else "mixed"
 
 
 def evaluate(args):
@@ -435,9 +496,13 @@ def evaluate(args):
     rows, total = strategies(args.cache, forecast["race"]["session_key"])
     if not rows:
         raise SystemExit("No stint data for the race yet.")
+    conditions = race_conditions(rows)
+    # The forecast assumes a dry race; a wet or mixed one is still scored but kept out of the season record.
     forecast["result"] = {"scored": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                          "laps": total, **score(forecast["prediction"], rows)}
+                          "laps": total, "conditions": conditions, "counts_toward_record": conditions == "dry",
+                          **score(forecast["prediction"], rows)}
     args.output.write_text(json.dumps(forecast, ensure_ascii=False, indent=2) + "\n")
+    write_index(args.output.parent)
     print(json.dumps(forecast["result"], indent=2))
 
 
@@ -446,7 +511,9 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=("predict", "evaluate"))
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--location", default="Las Vegas")
+    parser.add_argument("--circuit", default="Las Vegas", help="OpenF1 circuit_short_name, e.g. Lusail")
+    parser.add_argument("--note", action="append", default=[], help="extra caveat recorded in the forecast")
+    parser.add_argument("--note-zh", action="append", default=[], help="the same caveat in Chinese for the site")
     parser.add_argument("--year", type=int, default=2026)
     parser.add_argument("--laps", type=int, default=50, help="scheduled race distance of the target race")
     parser.add_argument("--history", type=int, nargs="+", default=[2023, 2024, 2025])
