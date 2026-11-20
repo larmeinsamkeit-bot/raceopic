@@ -28,6 +28,20 @@
     return response.json();
   }
 
+  function practiceLine(data) {
+    // Say what practice gave the model: used, rained out, no long runs, or not run yet.
+    const status = data.practice_status;
+    const sessions = status ? status.sessions_run.map(name => name.replace('Practice ', 'FP')).join(L('、', ', ')) : '';
+    if (data.uses_practice) return L('本次预测已用上今年练习赛的长距离数据。', 'This forecast uses this year\'s practice long runs.');
+    if (status?.state === 'wet') return L(`今年的练习赛（${sessions}）在雨中进行，只用了半雨胎和全雨胎，没有可用的干地长距离，本次预测只用历史数据。`,
+      `This year's practice (${sessions}) ran in the wet on intermediates and wets, with no dry long runs, so this forecast uses history only.`);
+    if (status?.state === 'used' && !data.practice_weight) return L('回测显示练习赛模拟在这条赛道没有帮助，本次预测只用历史数据。',
+      'Backtests show the practice simulation does not help at this circuit, so this forecast uses history only.');
+    if (status?.state === 'no_long_runs') return L(`今年的练习赛（${sessions}）没有足够的长距离，本次预测只用历史数据。`,
+      `This year's practice (${sessions}) had no usable long runs, so this forecast uses history only.`);
+    return L('今年的练习赛数据尚未产生，本次预测只用历史数据；练习赛后会重新生成。', 'This year\'s practice has not run yet, so this forecast uses history only; it is regenerated after practice.');
+  }
+
   function render(data, file) {
     const {race, prediction: p, result: r, baseline_backtest: bt} = data;
     const locked = race.date_start && new Date(data.created) < new Date(race.date_start);
@@ -78,8 +92,7 @@
         <p><strong>${L('回测', 'Backtest')}</strong>${L('：', ': ')}${L(`用更早的年份预测 ${targets} 年，再和实际结果比对。`, `earlier years predict ${targets}, then are checked against what happened. `)}
         ${weights.length > 1 ? L(`练习赛模拟的占比按平均 Brier 分数（越低越好）自动选择：${choice}，采用「${label(chosen)}」。`,
           `The practice share is picked by mean Brier score (lower is better): ${choice}; using “${label(chosen)}”. `) : ''}
-        ${data.uses_practice ? L('本次预测已用上今年练习赛的长距离数据。', 'This forecast uses this year\'s practice long runs.')
-          : L('今年的练习赛数据尚未产生，本次预测只用历史数据；练习赛后会重新生成。', 'This year\'s practice has not run yet, so this forecast uses history only; it is regenerated after practice.')}</p>
+        ${practiceLine(data)}</p>
         <div class="standings-scroll"><table class="sports-table backtest-table">
           <thead><tr><th scope="col">${L('年份', 'Year')}</th><th scope="col">${L('模型', 'Model')}</th><th scope="col">${L('停站次数命中', 'Stops correct')}</th>
             <th scope="col">${L('首停在窗口内', 'First stop in window')}</th><th scope="col">${L('首停误差（圈）', 'First-stop error (laps)')}</th><th scope="col">Brier</th></tr></thead>

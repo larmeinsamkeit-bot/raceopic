@@ -156,6 +156,25 @@ def practice_runs(cache, year, circuit):
     return runs
 
 
+def practice_status(cache, year, circuit):
+    """What practice has produced so far: sessions run, dry long runs, and wet-tyre stints."""
+    folder = cache / f"practice-{year}"
+    folder.mkdir(parents=True, exist_ok=True)
+    sessions = [s for s in fetch(folder, "sessions", {"year": year, "circuit_short_name": circuit})
+                if s["session_name"].startswith("Practice")]
+    ran, wet = [], 0
+    for session in sessions:
+        laps = fetch(folder, "laps", {"session_key": session["session_key"]})
+        if any(lap.get("lap_duration") for lap in laps):
+            ran.append(session["session_name"])
+        wet += sum((s.get("compound") or "").upper() in ("INTERMEDIATE", "WET")
+                   for s in fetch(folder, "stints", {"session_key": session["session_key"]}))
+    drop_empty(folder)
+    runs = practice_runs(cache, year, circuit)
+    state = "used" if runs else "wet" if ran and wet else "no_long_runs" if ran else "not_run"
+    return {"state": state, "sessions_run": ran, "dry_long_runs": len(runs), "wet_stints": wet}
+
+
 def degradation_from_runs(runs):
     """Pooled within-run slope per compound, corrected for fuel burn: s lost per lap of tyre age."""
     result = {}
@@ -402,7 +421,8 @@ def predict(args):
     print("mean Brier by practice weight:", mean_brier, "-> using", chosen)
 
     prediction, practice = full_model(args.cache, args.circuit, args.year, args.laps, history, chosen)
-    print("practice data:", "used" if practice else "not available yet, history only")
+    status = practice_status(args.cache, args.year, args.circuit)
+    print("practice data:", "used" if practice else "not used, history only", status)
     target = race_session(args.cache, args.year, args.circuit)
     latest = backtests[-1] if backtests else None
     forecast = {
@@ -417,6 +437,7 @@ def predict(args):
                    "Recency-weighted frequencies over full-distance runners in earlier editions; "
                    "practice data not available yet."),
         "uses_practice": practice is not None and chosen > 0,
+        "practice_status": status,
         "practice_weight": chosen,
         "weight_selection": {"candidates": list(WEIGHTS), "mean_brier": mean_brier,
                              "rule": "lowest mean stop-count Brier score across backtests"},
