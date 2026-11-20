@@ -15,6 +15,8 @@
   const raceName = race => L(`${place(race)}大奖赛`, `${place(race)} Grand Prix`);
   const stopsText = n => L(`${n} 停`, `${n} stop${n === 1 ? '' : 's'}`);
   const years = list => list.join(L('、', ', '));
+  const CONDITIONS = {dry: L('干地', 'dry'), mixed: L('干湿混合', 'mixed'), wet: L('雨战', 'wet')};
+  const counts = r => r && r.counts_toward_record !== false;
   const chips = seq => seq.split('-').map(c => {
     const [label, cls] = TYRE[c] || [c, ''];
     return `<span class="tyre-chip ${cls}" title="${label}">${esc(c)}</span>`;
@@ -51,9 +53,11 @@
     const history = years(data.history.map(h => h.year));
     el('predictionLead').textContent = L(
       `生成于 ${when(data.created)}${locked ? '，早于正赛发车' : ''}。基于 ${history} 年同站数据，越近的年份权重越高。` +
-        (r ? '' : `正赛 ${race.date_start ? when(race.date_start) : ''} 结束后用 OpenF1 实际轮胎记录打分。`),
+        (r ? '' : `正赛 ${race.date_start ? when(race.date_start) : ''} 结束后用 OpenF1 实际轮胎记录打分。`) +
+        '本预测假设干地比赛；若正赛下雨，仍会打分但不计入整季记录。',
       `Created ${when(data.created)}${locked ? ', before lights out' : ''}. Built on ${history} at this circuit, recent years weighted more. ` +
-        (r ? '' : `Scored against OpenF1 tyre records after the race on ${race.date_start ? when(race.date_start) : ''}.`));
+        (r ? '' : `Scored against OpenF1 tyre records after the race on ${race.date_start ? when(race.date_start) : ''}. `) +
+        'It assumes a dry race; a wet race is still scored but left out of the season record.');
 
     const stops = p.most_likely_stops;
     const top = p.top_sequences[0];
@@ -63,7 +67,8 @@
       card(L('首选配方顺序', 'Most likely compounds'), chips(top.sequence), `${L('概率', 'probability')} ${pct(top.probability)}`),
       card(L('首停窗口', 'First-stop window'), `L${w.from}–L${w.to}`, L(`中位数第 ${w.median} 圈`, `median lap ${w.median}`)),
       r ? card(L('赛后：停站次数命中', 'After the race: stops correct'), pct(r.stop_count_hit_rate),
-        L(`首停误差 ${r.first_stop_mae_laps ?? '—'} 圈 · ${r.drivers} 位车手`, `first-stop error ${r.first_stop_mae_laps ?? '—'} laps · ${r.drivers} drivers`))
+        L(`首停误差 ${r.first_stop_mae_laps ?? '—'} 圈 · ${r.drivers} 位车手`, `first-stop error ${r.first_stop_mae_laps ?? '—'} laps · ${r.drivers} drivers`) +
+        (counts(r) ? '' : L(` · ${CONDITIONS[r.conditions] || r.conditions}比赛，不计入整季记录`, ` · ${CONDITIONS[r.conditions] || r.conditions} race, not in the season record`)))
         : card(L('赛后：准确度', 'After the race: accuracy'), L('待比赛', 'Pending'), L('比赛结束后自动填入', 'Filled in once the race is scored')),
     ].join('');
 
@@ -123,11 +128,12 @@
       return `<tr><th scope="row">${esc(place(race))}</th><td class="numeric">${race.date_start ? when(race.date_start) : '—'}</td>
         <td>${stopsText(p.most_likely_stops)} · ${chips(p.top_sequences[0].sequence)}</td>
         <td class="numeric">L${p.first_stop_window.from}–L${p.first_stop_window.to}</td>
-        <td class="numeric">${r ? pct(r.stop_count_hit_rate) : L('待比赛', 'Pending')}</td>
+        <td class="numeric">${r ? pct(r.stop_count_hit_rate) + (counts(r) ? '' : ` <small>(${CONDITIONS[r.conditions] || r.conditions})</small>`) : L('待比赛', 'Pending')}</td>
         <td class="numeric">${r ? pct(r.first_stop_in_window) : '—'}</td>
         <td class="numeric">${r ? r.stop_count_brier : '—'}</td></tr>`;
     }).join('');
-    const scored = forecasts.filter(f => f.data.result);
+    // Wet or mixed races are shown but kept out of the averages: the forecast assumed a dry race.
+    const scored = forecasts.filter(f => counts(f.data.result));
     const mean = key => scored.length ? scored.reduce((sum, f) => sum + f.data.result[key], 0) / scored.length : null;
     el('forecastRecord').innerHTML = `
       <h3>${L('整季预测记录', 'Season forecast record')}</h3>
@@ -136,7 +142,8 @@
           <th scope="col">${L('首停窗口', 'First-stop window')}</th><th scope="col">${L('停站次数命中', 'Stops correct')}</th>
           <th scope="col">${L('首停在窗口内', 'First stop in window')}</th><th scope="col">Brier</th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><th scope="row">${L(`已完赛 ${scored.length} / ${forecasts.length}`, `Scored ${scored.length} / ${forecasts.length}`)}</th><td></td><td></td><td></td>
+        <tfoot><tr><th scope="row">${L(`已打分 ${forecasts.filter(f => f.data.result).length} · 计入记录 ${scored.length} / ${forecasts.length}`,
+          `Scored ${forecasts.filter(f => f.data.result).length} · in record ${scored.length} / ${forecasts.length}`)}</th><td></td><td></td><td></td>
           <td class="numeric">${scored.length ? pct(mean('stop_count_hit_rate')) : '—'}</td>
           <td class="numeric">${scored.length ? pct(mean('first_stop_in_window')) : '—'}</td>
           <td class="numeric">${scored.length ? mean('stop_count_brier').toFixed(3) : '—'}</td></tr></tfoot>

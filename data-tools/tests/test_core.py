@@ -92,6 +92,12 @@ class Forecast(unittest.TestCase):
             2: {"stops": 1, "sequence": "M-H", "first_stop": 22},
             3: {"stops": 2, "sequence": "M-H-H", "first_stop": 12}}
 
+    def test_race_conditions(self):
+        dry = {1: {"sequence": "M-H"}, 2: {"sequence": "H-M"}}
+        mixed = {1: {"sequence": "I-M"}, 2: {"sequence": "H-M"}}
+        wet = {1: {"sequence": "I-I"}, 2: {"sequence": "W-I"}}
+        self.assertEqual([P.race_conditions(r) for r in (dry, mixed, wet)], ["dry", "mixed", "wet"])
+
     def test_weighted_quantile(self):
         pairs = [(1, 1), (2, 1), (3, 2)]
         self.assertEqual(P.weighted_quantile(pairs, .5), 2)

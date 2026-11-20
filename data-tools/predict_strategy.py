@@ -449,6 +449,7 @@ def predict(args):
                    if practice else
                    "Recency-weighted frequencies over full-distance runners in earlier editions; "
                    "practice data not available yet."),
+        "scenario": "dry",
         "uses_practice": practice is not None and chosen > 0,
         "practice_status": status,
         "practice_weight": chosen,
@@ -465,6 +466,8 @@ def predict(args):
             "target_year": latest["target_year"], "trained_on": latest["trained_on"], "score": latest["with_practice"]},
         "caveats": ["Earlier editions ran under different technical rules and tyre allocations.",
                     "Safety cars and red flags are not modelled; they move stop laps.",
+                    "The forecast assumes a dry race: none of the earlier editions was wet, so there is no history "
+                    "to forecast a wet strategy from. A wet or mixed race is scored but left out of the season record.",
                     "Pit loss uses the median pit-lane time of the previous edition.",
                     "Las Vegas track evolution is strong: practice long runs often get faster with tyre age, "
                     "so degradation is floored and the simulation mostly weighs pit loss against tyre life.",
@@ -479,6 +482,12 @@ def predict(args):
     print(json.dumps(forecast["prediction"], indent=2))
 
 
+def race_conditions(rows):
+    """'dry', 'mixed' or 'wet' from the tyres the full-distance runners used."""
+    wet = sum(any(c in row["sequence"].split("-") for c in ("I", "W")) for row in rows.values())
+    return "dry" if wet == 0 else "wet" if wet == len(rows) else "mixed"
+
+
 def evaluate(args):
     forecast = json.loads(args.output.read_text())
     if forecast["race"]["date_start"] and datetime.fromisoformat(forecast["created"]) >= \
@@ -487,8 +496,11 @@ def evaluate(args):
     rows, total = strategies(args.cache, forecast["race"]["session_key"])
     if not rows:
         raise SystemExit("No stint data for the race yet.")
+    conditions = race_conditions(rows)
+    # The forecast assumes a dry race; a wet or mixed one is still scored but kept out of the season record.
     forecast["result"] = {"scored": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                          "laps": total, **score(forecast["prediction"], rows)}
+                          "laps": total, "conditions": conditions, "counts_toward_record": conditions == "dry",
+                          **score(forecast["prediction"], rows)}
     args.output.write_text(json.dumps(forecast, ensure_ascii=False, indent=2) + "\n")
     write_index(args.output.parent)
     print(json.dumps(forecast["result"], indent=2))
