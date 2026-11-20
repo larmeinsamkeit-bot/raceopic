@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from build_dataset import distance_along, interp, neutral_periods, solve  # noqa: E402
 from build_season_lab import NS, group_by_window, timed  # noqa: E402
 import predict_strategy as P  # noqa: E402
-from build_teammates import round_gaps  # noqa: E402
+from build_teammates import lap_seconds, official_gap, round_gaps  # noqa: E402
 from add_weather import lap_weather  # noqa: E402
 
 
@@ -169,6 +169,22 @@ class Teammates(unittest.TestCase):
         row = round_gaps(event)[0]
         self.assertIsNone(row["race"])
         self.assertIsNone(row["quali"])
+
+    def test_official_gap_uses_last_shared_session(self):
+        a = {"q1": "1:30.000", "q2": "1:29.500", "q3": "1:29.000"}
+        b = {"q1": "1:30.200", "q2": "1:29.300", "q3": None}
+        self.assertEqual(official_gap(a, b), (.2, "Q2"))
+        self.assertEqual(lap_seconds("1:27.470"), 87.47)
+        self.assertIsNone(lap_seconds(""))
+
+    def test_official_times_win_over_telemetry(self):
+        a = self.driver(1, "AAA", "Team", [90.0] * 12)
+        b = self.driver(2, "BBB", "Team", [90.3] * 12)
+        event = {"drivers": [a, b], "telemetry": {"laps": {"1": [{"time": 80.0}], "2": [{"time": 80.5}]}}}
+        official = {"AAA": {"q1": "1:20.400"}, "BBB": {"q1": "1:20.300"}}
+        row = round_gaps(event, official)[0]
+        self.assertAlmostEqual(row["quali"], .1)
+        self.assertEqual(row["quali_session"], "Q1")
 
     def test_teams_without_two_drivers_are_skipped(self):
         event = {"drivers": [self.driver(1, "AAA", "Solo", [90.0] * 12)], "telemetry": {"laps": {}}}

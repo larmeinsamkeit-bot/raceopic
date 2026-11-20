@@ -31,7 +31,8 @@
         const top = Math.min(y(0), y(v));
         const height = Math.max(1.5, Math.abs(y(v) - y(0)));
         const who = v < 0 ? 'a' : 'b';
-        const label = `${kind === 'quali' ? L('排位', 'Qualifying') : L('正赛配速', 'Race pace')} · ${v < 0 ? a : b} ${L('快', 'faster by')} ${Math.abs(v).toFixed(3)} ${L('秒', 's')}`;
+        const session = kind === 'quali' && r.quali_session ? ` (${r.quali_session === 'telemetry' ? L('遥测', 'telemetry') : r.quali_session})` : '';
+        const label = `${kind === 'quali' ? L('排位', 'Qualifying') : L('正赛配速', 'Race pace')}${session} · ${v < 0 ? a : b} ${L('快', 'faster by')} ${Math.abs(v).toFixed(3)} ${L('秒', 's')}`;
         return `<rect class="tm-bar tm-${kind} tm-${who}" x="${x(i) + slot * offset}" width="${slot * .36}" y="${top}" height="${height}"><title>R${r.round} · ${label}</title></rect>`;
       }).join('');
       return `<a href="index.html?race=${encodeURIComponent(r.id)}&a=${a}&b=${b}" aria-label="R${r.round} ${gpName(r.name)}">${parts}</a>
@@ -42,7 +43,7 @@
       ${grid}<text class="chart-label tm-side" x="44" y="26">${L(`${a} 更快`, `${a} faster`)}</text>
       <text class="chart-label tm-side" x="44" y="244">${L(`${b} 更快`, `${b} faster`)}</text>${bars}</svg>`;
     el('teammateLegend').innerHTML =
-      `<span><i class="swatch tm-legend-quali"></i>${L('排位最快圈差距', 'Qualifying gap')}</span>` +
+      `<span><i class="swatch tm-legend-quali"></i>${L('排位差距（官方）', 'Qualifying gap (official)')}</span>` +
       `<span><i class="swatch tm-legend-race"></i>${L('正赛配对圈中位差', 'Race-pace gap')}</span>`;
   }
 
