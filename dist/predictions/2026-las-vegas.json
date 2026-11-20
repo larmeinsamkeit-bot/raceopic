@@ -7,7 +7,7 @@
     "session_key": 11420,
     "date_start": "2026-11-22T04:00:00+00:00"
   },
-  "created": "2026-11-20T06:02:21+00:00",
+  "created": "2026-11-20T18:23:27+00:00",
   "method": "Recency-weighted frequencies over full-distance runners in earlier editions; practice data not available yet.",
   "uses_practice": false,
   "practice_status": {
@@ -27,11 +27,42 @@
       0.6
     ],
     "mean_brier": {
+      "0.0": 0.887,
+      "0.3": 0.771,
+      "0.6": 0.834
+    },
+    "this_circuit_brier": {
       "0.0": 0.765,
       "0.3": 0.66,
       "0.6": 0.735
     },
-    "rule": "lowest mean stop-count Brier score across backtests"
+    "pooled_over": [
+      {
+        "circuit": "Las Vegas",
+        "year": 2024
+      },
+      {
+        "circuit": "Las Vegas",
+        "year": 2025
+      },
+      {
+        "circuit": "Yas Marina Circuit",
+        "year": 2024
+      },
+      {
+        "circuit": "Yas Marina Circuit",
+        "year": 2025
+      },
+      {
+        "circuit": "Lusail",
+        "year": 2024
+      },
+      {
+        "circuit": "Lusail",
+        "year": 2025
+      }
+    ],
+    "rule": "lowest mean stop-count Brier score across every circuit's backtests"
   },
   "practice": null,
   "history": [

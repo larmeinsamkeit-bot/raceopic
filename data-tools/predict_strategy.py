@@ -407,9 +407,21 @@ def predict(args):
                 row["by_weight"][str(weight)] = score(guess, target_race["rows"])
         row["history_only"] = row["by_weight"]["0.0"]
         backtests.append(row)
-    usable = [w for w in WEIGHTS if backtests and all(str(w) in b["by_weight"] for b in backtests)]
-    mean_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for b in backtests) / len(backtests), 3)
+    # Pick the weight across every circuit's backtests, not this circuit's alone: with two editions
+    # per circuit, a per-circuit choice mostly fits noise. Other forecasts in the folder add their rows.
+    pooled = [(args.circuit, b) for b in backtests]
+    for path in sorted(args.output.parent.glob("*.json")):
+        if path.name in ("index.json", args.output.name):
+            continue
+        other = json.loads(path.read_text())
+        circuit = other["race"].get("circuit") or other["race"]["location"]
+        if circuit != args.circuit:
+            pooled += [(circuit, b) for b in other.get("backtests", []) if b.get("by_weight")]
+    usable = [w for w in WEIGHTS if pooled and all(str(w) in b["by_weight"] for _, b in pooled)]
+    mean_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for _, b in pooled) / len(pooled), 3)
                   for w in usable}
+    own_brier = {str(w): round(sum(b["by_weight"][str(w)]["stop_count_brier"] for b in backtests) / len(backtests), 3)
+                 for w in usable if all(str(w) in b["by_weight"] for b in backtests)}
     chosen = args.practice_weight if args.practice_weight is not None else \
         (float(min(mean_brier, key=mean_brier.get)) if mean_brier else 0.)
     for row in backtests:
@@ -418,7 +430,8 @@ def predict(args):
         for weight, result in row["by_weight"].items():
             print(f"  practice {weight}: stops {result['stop_count_hit_rate']}, window {result['first_stop_in_window']}, "
                   f"MAE {result['first_stop_mae_laps']}, Brier {result['stop_count_brier']}")
-    print("mean Brier by practice weight:", mean_brier, "-> using", chosen)
+    print("pooled over", [f"{c} {b['target_year']}" for c, b in pooled])
+    print("mean Brier by practice weight (pooled):", mean_brier, "this circuit:", own_brier, "-> using", chosen)
 
     prediction, practice = full_model(args.cache, args.circuit, args.year, args.laps, history, chosen)
     status = practice_status(args.cache, args.year, args.circuit)
@@ -439,8 +452,9 @@ def predict(args):
         "uses_practice": practice is not None and chosen > 0,
         "practice_status": status,
         "practice_weight": chosen,
-        "weight_selection": {"candidates": list(WEIGHTS), "mean_brier": mean_brier,
-                             "rule": "lowest mean stop-count Brier score across backtests"},
+        "weight_selection": {"candidates": list(WEIGHTS), "mean_brier": mean_brier, "this_circuit_brier": own_brier,
+                             "pooled_over": [{"circuit": c, "year": b["target_year"]} for c, b in pooled],
+                             "rule": "lowest mean stop-count Brier score across every circuit's backtests"},
         "practice": practice,
         "history": [{k: v for k, v in race.items() if k != "rows"} for race in history],
         "prediction": prediction,

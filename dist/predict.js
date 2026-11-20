@@ -90,8 +90,14 @@
       const choice = weights.map(wt => `${label(wt)} ${brier[wt] ?? '—'}`).join(L('，', ', '));
       el('predictionBacktest').innerHTML = `
         <p><strong>${L('回测', 'Backtest')}</strong>${L('：', ': ')}${L(`用更早的年份预测 ${targets} 年，再和实际结果比对。`, `earlier years predict ${targets}, then are checked against what happened. `)}
-        ${weights.length > 1 ? L(`练习赛模拟的占比按平均 Brier 分数（越低越好）自动选择：${choice}，采用「${label(chosen)}」。`,
-          `The practice share is picked by mean Brier score (lower is better): ${choice}; using “${label(chosen)}”. `) : ''}
+        ${weights.length > 1 ? (() => {
+          const pooled = data.weight_selection?.pooled_over?.length;
+          return pooled
+            ? L(`练习赛模拟的占比取所有赛道合并的 ${pooled} 个回测中平均 Brier 分数（越低越好）最低者：${choice}，采用「${label(chosen)}」。只看单一赛道两届的结果容易选到运气，因此不按赛道各自挑选。`,
+                `The practice share is the one with the lowest mean Brier score (lower is better) over all ${pooled} backtests pooled across circuits: ${choice}; using “${label(chosen)}”. With two editions per circuit, choosing per circuit would mostly fit luck. `)
+            : L(`练习赛模拟的占比按平均 Brier 分数（越低越好）自动选择：${choice}，采用「${label(chosen)}」。`,
+                `The practice share is picked by mean Brier score (lower is better): ${choice}; using “${label(chosen)}”. `);
+        })() : ''}
         ${practiceLine(data)}</p>
         <div class="standings-scroll"><table class="sports-table backtest-table">
           <thead><tr><th scope="col">${L('年份', 'Year')}</th><th scope="col">${L('模型', 'Model')}</th><th scope="col">${L('停站次数命中', 'Stops correct')}</th>

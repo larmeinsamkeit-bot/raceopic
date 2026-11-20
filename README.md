@@ -40,15 +40,15 @@ The blend weight is not hand-picked: the script backtests each earlier edition a
 
 Honest reading: two editions are not enough to claim the practice model is better — it helps 2025 (a one-stop race) and hurts 2024 (a two-stop race). Las Vegas has strong track evolution, so practice long runs often get *faster* with tyre age and degradation is hard to measure.
 
-The same backtest picks a different weight per circuit, so the practice model is only used where it has earned it:
+The weight is chosen once, over all six backtests pooled across the three circuits (Las Vegas, Qatar, Abu Dhabi × 2024–2025), not per circuit: with two editions each, a per-circuit choice mostly fits luck (it had picked 30%, 60% and 0%). Pooled, 30% practice wins with a mean Brier score of 0.771 against 0.887 for history alone and 0.834 for 60%.
 
-| Race (2026) | Start | Practice weight | Mean Brier: history only → chosen | Forecast |
-|---|---|---:|---:|---|
-| [Las Vegas](dist/predictions/2026-las-vegas.json) | 22 Nov | 30% | 0.765 → 0.660 | 1 stop (49.5%), M→H |
-| [Qatar](dist/predictions/2026-qatar.json) | 29 Nov | 60% | 1.073 → 0.662 | 2 stops (44.4%), M→M→H |
-| [Abu Dhabi](dist/predictions/2026-abu-dhabi.json) | 6 Dec | 0% | 0.823 (history only) | 1 stop (56.6%), M→H |
+| Race (2026) | Start | Practice weight | Forecast (history so far) |
+|---|---|---:|---|
+| [Las Vegas](dist/predictions/2026-las-vegas.json) | 22 Nov | 30% | 1 stop (49.5%), M→H |
+| [Qatar](dist/predictions/2026-qatar.json) | 29 Nov | 30% | 2 stops (44.4%), M→M→H |
+| [Abu Dhabi](dist/predictions/2026-abu-dhabi.json) | 6 Dec | 30% | 1 stop (56.6%), M→H |
 
-Each forecast is regenerated once that weekend's practice has run and committed before the race; the season page keeps a record table that fills in as races are scored. Qatar's history is distorted by tyre-life limits imposed for safety in 2023 and 2025, which forced extra stops.
+Las Vegas FP1 and FP2 in 2026 were wet (intermediates and wets only), so there were no dry long runs and its forecast stays on history; the forecast file records this as `practice_status`. Each forecast is regenerated once that weekend's practice has run and committed before the race; the season page keeps a record table that fills in as races are scored. Qatar's history is distorted by tyre-life limits imposed for safety in 2023 and 2025, which forced extra stops.
 
 ![Forecast panel with the backtest table](docs/forecast.png)
 
@@ -125,7 +125,7 @@ Raceopic 是一个 F1 数据分析网站，回答一个问题：**两位车手�
 - **可分享链接**：网址会记录赛事、车手、排位圈和模式。
 - **2026 赛季**：赛历、每轮后的车手与车队积分、整季队友对决、分类成绩与各站 OpenF1 正赛档案。
 - **中英文界面**：默认跟随浏览器语言，可用 EN / 中文 按钮切换并记住选择。
-- **三站赛前预测**：拉斯维加斯、卡塔尔、阿布扎比，练习赛模型的占比按每条赛道的回测分别决定（30%、60%、0%）。
+- **三站赛前预测**：拉斯维加斯、卡塔尔、阿布扎比。练习赛模型的占比取三条赛道合并的 6 个回测中最好的一个（30%），避免每条赛道只有两届数据时挑到运气。
 
 ### 赛前策略预测
 

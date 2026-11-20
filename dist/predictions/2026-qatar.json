@@ -7,10 +7,16 @@
     "session_key": 11428,
     "date_start": "2026-11-29T16:00:00+00:00"
   },
-  "created": "2026-11-19T07:39:11+00:00",
+  "created": "2026-11-20T18:23:41+00:00",
   "method": "Recency-weighted frequencies over full-distance runners in earlier editions; practice data not available yet.",
   "uses_practice": false,
-  "practice_weight": 0.6,
+  "practice_status": {
+    "state": "not_run",
+    "sessions_run": [],
+    "dry_long_runs": 0,
+    "wet_stints": 0
+  },
+  "practice_weight": 0.3,
   "weight_selection": {
     "candidates": [
       0.0,
@@ -18,11 +24,42 @@
       0.6
     ],
     "mean_brier": {
+      "0.0": 0.887,
+      "0.3": 0.771,
+      "0.6": 0.834
+    },
+    "this_circuit_brier": {
       "0.0": 1.073,
       "0.3": 0.715,
       "0.6": 0.662
     },
-    "rule": "lowest mean stop-count Brier score across backtests"
+    "pooled_over": [
+      {
+        "circuit": "Lusail",
+        "year": 2024
+      },
+      {
+        "circuit": "Lusail",
+        "year": 2025
+      },
+      {
+        "circuit": "Yas Marina Circuit",
+        "year": 2024
+      },
+      {
+        "circuit": "Yas Marina Circuit",
+        "year": 2025
+      },
+      {
+        "circuit": "Las Vegas",
+        "year": 2024
+      },
+      {
+        "circuit": "Las Vegas",
+        "year": 2025
+      }
+    ],
+    "rule": "lowest mean stop-count Brier score across every circuit's backtests"
   },
   "practice": null,
   "history": [
@@ -169,11 +206,11 @@
       },
       "with_practice": {
         "drivers": 15,
-        "stop_count_hit_rate": 0.0,
+        "stop_count_hit_rate": 0.6,
         "top_sequence_hit_rate": 0.0,
-        "first_stop_in_window": 0.133,
-        "first_stop_mae_laps": 8.87,
-        "stop_count_brier": 1.0,
+        "first_stop_in_window": 0.0,
+        "first_stop_mae_laps": 15.73,
+        "stop_count_brier": 0.694,
         "actual_stop_counts": {
           "3": 9,
           "4": 6
@@ -273,11 +310,11 @@
       },
       "with_practice": {
         "drivers": 18,
-        "stop_count_hit_rate": 0.889,
+        "stop_count_hit_rate": 0.111,
         "top_sequence_hit_rate": 0.0,
         "first_stop_in_window": 0.111,
-        "first_stop_mae_laps": 20.0,
-        "stop_count_brier": 0.325,
+        "first_stop_mae_laps": 22.0,
+        "stop_count_brier": 0.736,
         "actual_stop_counts": {
           "2": 16,
           "3": 2
@@ -326,11 +363,11 @@
     ],
     "score": {
       "drivers": 18,
-      "stop_count_hit_rate": 0.889,
+      "stop_count_hit_rate": 0.111,
       "top_sequence_hit_rate": 0.0,
       "first_stop_in_window": 0.111,
-      "first_stop_mae_laps": 20.0,
-      "stop_count_brier": 0.325,
+      "first_stop_mae_laps": 22.0,
+      "stop_count_brier": 0.736,
       "actual_stop_counts": {
         "2": 16,
         "3": 2
