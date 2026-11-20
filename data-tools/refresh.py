@@ -50,8 +50,23 @@ def forecasts_to_score(dist, now):
     return due
 
 
+def keep_timestamp_if_unchanged(path, before):
+    """pull_season.py stamps "updated" on every run; undo that when nothing else changed,
+    so a frequent schedule does not churn the data with empty commits."""
+    if before is None or not path.exists():
+        return
+    after = json.loads(path.read_text())
+    old = json.loads(before)
+    if {k: v for k, v in after.items() if k != "updated"} == {k: v for k, v in old.items() if k != "updated"}:
+        path.write_text(before)
+
+
 def main(dist, cache, dry_run):
+    season_path = dist / "season-2026.json"
+    before = season_path.read_text() if season_path.exists() else None
     run("pull_season.py", "--cache", cache / "season", "--output", dist, "all", dry_run=dry_run)
+    if not dry_run:
+        keep_timestamp_if_unchanged(season_path, before)
     rounds = missing_rounds(dist)
     print("new rounds for the lab:", rounds or "none")
     if rounds:

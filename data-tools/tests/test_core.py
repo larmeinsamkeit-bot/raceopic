@@ -214,6 +214,19 @@ class Weather(unittest.TestCase):
 
 
 class Refresh(unittest.TestCase):
+    def test_timestamp_only_change_is_undone(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "season.json"
+            before = json.dumps({"updated": "a", "rounds": [1]})
+            path.write_text(json.dumps({"updated": "b", "rounds": [1]}))
+            refresh.keep_timestamp_if_unchanged(path, before)
+            self.assertEqual(path.read_text(), before)
+            path.write_text(json.dumps({"updated": "b", "rounds": [1, 2]}))
+            refresh.keep_timestamp_if_unchanged(path, before)
+            self.assertIn("[1, 2]", path.read_text())
+
     def test_plan_finds_new_rounds_and_due_forecasts(self):
         import json
         import tempfile

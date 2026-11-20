@@ -1,10 +1,12 @@
 name: Refresh race data
 
-# After each race weekend: fetch new data, rebuild the snapshots, score finished forecasts,
+# After each race: fetch new data, rebuild the snapshots, score finished forecasts,
 # run the unit tests, and open a pull request with whatever changed.
 on:
   schedule:
-    - cron: "17 7 * * 1"   # Mondays 07:17 UTC, after the weekend's race
+    # Every three hours on Sundays and Mondays (UTC), so a race is picked up within hours of the
+    # flag; runs with nothing new change nothing, and the open data PR is updated, not duplicated.
+    - cron: "17 */3 * * 0,1"
   workflow_dispatch:
 
 permissions:

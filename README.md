@@ -83,7 +83,7 @@ After a race weekend one command runs the whole pipeline: standings and race arc
 python3 -B data-tools/refresh.py --cache /tmp/raceopic-refresh
 ```
 
-`.github/workflows/refresh.yml` runs it every Monday (and on demand), then the unit tests, and opens a `Refresh race data` pull request with whatever changed. It needs **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** turned on.
+`.github/workflows/refresh.yml` runs it every three hours on Sundays and Mondays UTC, so a race is picked up within hours (and on demand), then the unit tests, and opens a `Refresh race data` pull request with whatever changed. It needs **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** turned on.
 
 The individual steps, each needing network access (use fresh cache folders to pick up revised data):
 
