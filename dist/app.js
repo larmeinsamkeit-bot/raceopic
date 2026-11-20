@@ -49,6 +49,21 @@ function restoreLaps() {
   }
 }
 
+// Keyboard access for a chart cursor: arrows move one step (Shift: ten), Home / End jump to the ends.
+function keyCursor(element, label, get, set, min, max) {
+  element.tabIndex = 0;
+  element.setAttribute('role', 'group');
+  element.setAttribute('aria-roledescription', L('可用方向键移动的图表', 'chart, use arrow keys'));
+  if (label) element.setAttribute('aria-label', label);
+  element.onkeydown = event => {
+    const step = event.shiftKey ? 10 : 1;
+    const moves = {ArrowRight: get() + step, ArrowLeft: get() - step, ArrowUp: get() + step, ArrowDown: get() - step, Home: min, End: max};
+    if (!(event.key in moves)) return;
+    event.preventDefault();
+    set(clamp(moves[event.key], min, max));
+  };
+}
+
 async function readEventData(url) {
   const response = await fetch(url, {signal: AbortSignal.timeout(15000)});
   if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
@@ -421,10 +436,8 @@ function drawPace(rows, drivers) {
   </svg>`;
   drawDelta(rows, drivers, x);
   $('tooltip').textContent = L('在图上移动或轻触，查看单圈数据。', 'Move over or tap the chart for a lap.');
-  $('chart').onpointermove = e => {
-    const rect = $('chart').getBoundingClientRect();
-    const fraction = ((e.clientX - rect.left) / rect.width * 700 - 38) / 642;
-    const lap = clamp(Math.round(fraction * (n - 1)) + 1, 1, n);
+  const showLap = lap => {
+    state.paceLap = lap;
     $('paceCursor').setAttribute('x1', x(lap));
     $('paceCursor').setAttribute('x2', x(lap));
     $('paceCursor').setAttribute('opacity', 1);
@@ -435,6 +448,13 @@ function drawPace(rows, drivers) {
       return `${d.code} ${found ? lapTime(found.time) + (tyre ? `  ${tyre}${found.age ?? ''}` : '') : (original?.excluded ? L(original.excluded, EXCLUDED_EN[original.excluded] || 'excluded') : L('缺少数据', 'no data'))}`;
     }).join(' / ');
   };
+  $('chart').onpointermove = e => {
+    const rect = $('chart').getBoundingClientRect();
+    const fraction = ((e.clientX - rect.left) / rect.width * 700 - 38) / 642;
+    showLap(clamp(Math.round(fraction * (n - 1)) + 1, 1, n));
+  };
+  keyCursor($('chart'), L('逐圈圈速图，用方向键逐圈查看', 'Lap time chart, use arrow keys to step through laps'),
+    () => state.paceLap ?? 0, showLap, 1, n);
 }
 
 function drawDelta(rows, drivers, x) {

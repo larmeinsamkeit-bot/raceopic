@@ -95,12 +95,18 @@ function renderStory() {
     }).join(' / ');
   };
   $('storyReadout').textContent = describe(n);
-  $('storyChart').onpointermove = event => {
-    const rect = $('storyChart').getBoundingClientRect();
-    const lap = clamp(Math.round(((event.clientX - rect.left) / rect.width * 1000 - 40) / 940 * (n - 1)) + 1, 1, n);
+  let current = n;
+  const showLap = lap => {
+    current = lap;
     $('storyCursor').setAttribute('x1', x(lap));
     $('storyCursor').setAttribute('x2', x(lap));
     $('storyCursor').setAttribute('opacity', 1);
     $('storyReadout').textContent = describe(lap);
   };
+  $('storyChart').onpointermove = event => {
+    const rect = $('storyChart').getBoundingClientRect();
+    showLap(clamp(Math.round(((event.clientX - rect.left) / rect.width * 1000 - 40) / 940 * (n - 1)) + 1, 1, n));
+  };
+  keyCursor($('storyChart'), L('比赛进程图，用方向键逐圈查看', 'Race story chart, use arrow keys to step through laps'),
+    () => current, showLap, 1, n);
 }

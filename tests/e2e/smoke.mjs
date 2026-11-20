@@ -74,6 +74,18 @@ try {
   const expected = Math.abs(seconds(times[0]) - seconds(times[1])).toFixed(3);
   check(summary.includes(expected), `trace lap gap ${expected} s appears in the summary`);
 
+  // Charts move their cursor from the keyboard.
+  await page.focus('#traceChart');
+  await page.keyboard.press('End');
+  check((await page.textContent('#traceReadout')).startsWith('100%'), 'trace cursor reaches the end of the lap with End');
+  await page.focus('#chart');
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+ArrowRight');
+  check(/第 11 圈|Lap 11/.test(await page.textContent('#tooltip')), 'pace chart steps ten laps with Shift+Arrow');
+  await page.focus('#storyChart');
+  await page.keyboard.press('Home');
+  check(/第 1 圈|Lap 1 /.test(await page.textContent('#storyReadout')), 'race story cursor jumps to lap 1 with Home');
+
   // Map views, zoom and follow.
   for (const mode of ['miniMode', 'lines', 'replayMode', 'dominance']) {
     await page.click(`#${mode}`);

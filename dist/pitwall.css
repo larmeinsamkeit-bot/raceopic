@@ -675,3 +675,6 @@ body.pw { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1
 .weather-swatch-air { background: #9fb3bb; }
 .weather-swatch-rain { background: rgba(115, 169, 229, .6); }
 #weatherLegend span { margin-left: 16px; }
+
+/* keyboard-focusable charts */
+.chart:focus-visible, .trace-chart:focus-visible, .story-chart:focus-visible { outline: 2px solid var(--petronas); outline-offset: 6px; border-radius: 6px; }

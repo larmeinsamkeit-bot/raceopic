@@ -110,17 +110,22 @@ function drawTrace(first, second, drivers, bounds) {
   $('traceSummary').textContent = traceSummary(gap, drivers, state.bends, cuts);
   traceState.count = n;
   traceState.gap = gap;
-  $('traceChart').onpointermove = event => {
-    const rect = $('traceChart').querySelector('svg').getBoundingClientRect();
-    const index = Math.round(clamp((event.clientX - rect.left) / rect.width, 0, 1) * n);
+  const moveTo = index => {
     if (!$('positionTelemetry').hidden) setDistance(index);
     else traceCursor(index);
   };
+  $('traceChart').onpointermove = event => {
+    const rect = $('traceChart').querySelector('svg').getBoundingClientRect();
+    moveTo(Math.round(clamp((event.clientX - rect.left) / rect.width, 0, 1) * n));
+  };
+  keyCursor($('traceChart'), L('沿赛道距离的时间差、车速、油门与制动，用方向键移动', 'Gap, speed, throttle and brake along the lap, use arrow keys to move'),
+    () => traceState.at ?? 0, moveTo, 0, n);
   traceCursor(state.at || 0);
 }
 
 function traceCursor(index) {
   if (!traceState.count) return;
+  traceState.at = index;
   const position = index / traceState.count * 1000;
   for (const line of $('traceChart').querySelectorAll('.trace-cursor')) {
     line.setAttribute('x1', position);
