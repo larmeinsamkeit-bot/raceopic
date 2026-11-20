@@ -10,6 +10,7 @@ from build_season_lab import NS, group_by_window, timed  # noqa: E402
 import predict_strategy as P  # noqa: E402
 from build_teammates import lap_seconds, official_gap, round_gaps  # noqa: E402
 from add_weather import lap_weather  # noqa: E402
+import refresh  # noqa: E402
 
 
 def message(time, text, flag=None, scope=None):
@@ -204,6 +205,27 @@ class Weather(unittest.TestCase):
 
     def test_no_weather_gives_nothing(self):
         self.assertEqual(lap_weather([{"lap_number": 1, "date_start": "2025-01-01T12:00:00+00:00"}], []), [])
+
+
+class Refresh(unittest.TestCase):
+    def test_plan_finds_new_rounds_and_due_forecasts(self):
+        import json
+        import tempfile
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as folder:
+            dist = Path(folder)
+            (dist / "lab-2026").mkdir()
+            (dist / "predictions").mkdir()
+            (dist / "season-2026.json").write_text(json.dumps({"snapshots": {"1": {}, "2": {}, "3": {}}}))
+            (dist / "lab-2026" / "r01.json").write_text("{}")
+            race = lambda start, result: json.dumps({"race": {"date_start": start}, "result": result})
+            (dist / "predictions" / "done.json").write_text(race("2026-01-01T12:00:00+00:00", None))
+            (dist / "predictions" / "scored.json").write_text(race("2026-01-01T12:00:00+00:00", {"x": 1}))
+            (dist / "predictions" / "soon.json").write_text(race("2026-01-02T11:00:00+00:00", None))
+            (dist / "predictions" / "index.json").write_text("[]")
+            self.assertEqual(refresh.missing_rounds(dist), [2, 3])
+            now = datetime(2026, 1, 2, 12, tzinfo=timezone.utc)
+            self.assertEqual([p.name for p in refresh.forecasts_to_score(dist, now)], ["done.json"])
 
 
 if __name__ == "__main__":

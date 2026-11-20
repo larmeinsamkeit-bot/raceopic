@@ -77,7 +77,15 @@ Then open http://localhost:8765. Everything is plain HTML, CSS and JavaScript; t
 
 ## Refresh the data
 
-Each step needs network access; use fresh cache folders to pick up revised data.
+After a race weekend one command runs the whole pipeline: standings and race archives, lab files for newly completed rounds, per-lap weather, teammate head-to-heads, and scores for forecasts whose race has finished (`--dry-run` prints the plan):
+
+```sh
+python3 -B data-tools/refresh.py --cache /tmp/raceopic-refresh
+```
+
+`.github/workflows/refresh.yml` runs it every Monday (and on demand), then the unit tests, and opens a `Refresh race data` pull request with whatever changed. It needs **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** turned on.
+
+The individual steps, each needing network access (use fresh cache folders to pick up revised data):
 
 ```sh
 python3 -B data-tools/pull_openf1.py --cache /tmp/raceopic-archive
