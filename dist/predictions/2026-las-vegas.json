@@ -7,17 +7,18 @@
     "session_key": 11420,
     "date_start": "2026-11-22T04:00:00+00:00"
   },
-  "created": "2026-11-20T18:28:34+00:00",
-  "method": "Recency-weighted frequencies over full-distance runners in earlier editions; practice data not available yet.",
+  "created": "2026-11-21T02:00:51+00:00",
+  "method": "History prior (recency-weighted strategy frequencies) blended 30% with a race simulation that uses this year's practice long-run tyre degradation, the previous edition's compound pace and pit loss.",
   "scenario": "dry",
-  "uses_practice": false,
+  "uses_practice": true,
   "practice_status": {
-    "state": "wet",
+    "state": "used",
     "sessions_run": [
       "Practice 1",
-      "Practice 2"
+      "Practice 2",
+      "Practice 3"
     ],
-    "dry_long_runs": 0,
+    "dry_long_runs": 48,
     "wet_stints": 90
   },
   "practice_weight": 0.3,
@@ -65,7 +66,84 @@
     ],
     "rule": "lowest mean stop-count Brier score across every circuit's backtests"
   },
-  "practice": null,
+  "practice": {
+    "stop_probabilities": {
+      "1": 0.971,
+      "2": 0.029
+    },
+    "top_sequences": [
+      {
+        "sequence": "S-M",
+        "probability": 0.471
+      },
+      {
+        "sequence": "M-S",
+        "probability": 0.471
+      },
+      {
+        "sequence": "M-H",
+        "probability": 0.014
+      },
+      {
+        "sequence": "H-M",
+        "probability": 0.014
+      },
+      {
+        "sequence": "S-M-M",
+        "probability": 0.006
+      }
+    ],
+    "first_stop_window": {
+      "from": 17,
+      "median": 25,
+      "to": 33
+    },
+    "best_plan": {
+      "sequence": "S-M",
+      "stops": [
+        15
+      ]
+    },
+    "inputs": {
+      "long_runs": 48,
+      "long_run_laps": 320,
+      "practice_degradation": {
+        "S": {
+          "slope": -0.2145,
+          "laps": 237
+        },
+        "M": {
+          "slope": -0.1677,
+          "laps": 83
+        }
+      },
+      "pace_used": {
+        "S": {
+          "offset": -0.7,
+          "slope": 0.005
+        },
+        "M": {
+          "offset": -1.4094,
+          "slope": 0.005
+        },
+        "H": {
+          "offset": 0.0,
+          "slope": 0.005
+        }
+      },
+      "pit_loss": 21.64,
+      "tyre_life": {
+        "S": 25,
+        "M": 35,
+        "H": 45
+      },
+      "previous_longest_stint": {
+        "M": 24,
+        "H": 33,
+        "S": 2
+      }
+    }
+  },
   "history": [
     {
       "year": 2023,
@@ -92,36 +170,36 @@
   "prediction": {
     "most_likely_stops": 1,
     "stop_probabilities": {
-      "1": 0.495,
-      "2": 0.468,
-      "3": 0.037
+      "1": 0.638,
+      "2": 0.336,
+      "3": 0.026
     },
     "top_sequences": [
       {
         "sequence": "M-H",
-        "probability": 0.368
+        "probability": 0.262
       },
       {
         "sequence": "M-H-H",
-        "probability": 0.318
+        "probability": 0.223
+      },
+      {
+        "sequence": "S-M",
+        "probability": 0.141
+      },
+      {
+        "sequence": "M-S",
+        "probability": 0.141
       },
       {
         "sequence": "H-M",
-        "probability": 0.097
-      },
-      {
-        "sequence": "H-M-H",
-        "probability": 0.065
-      },
-      {
-        "sequence": "M-H-M",
-        "probability": 0.039
+        "probability": 0.072
       }
     ],
     "first_stop_window": {
-      "from": 10,
-      "median": 16,
-      "to": 21
+      "from": 12,
+      "median": 19,
+      "to": 25
     }
   },
   "backtests": [
