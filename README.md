@@ -15,6 +15,8 @@
 - **Whole-race replay.** Every car on the map with the running order, gaps, tyres and pit stops, rebuilt from lap times shaped by a qualifying lap's speed profile (not GPS); the 2026 Brazil finish comes out in the official order.
 - **Race story and tyre wear.** Every driver's gap to the leader lap by lap with pit stops and safety cars, and each stint's fuel-corrected lap time against tyre age with a fitted degradation slope.
 - **Pit-stop what-if.** A dry-race model fitted on the whole field estimates what moving one stop would have cost or gained.
+- **Classic races since 2021.** Twelve famous races in full (all drivers' race timing, qualifying telemetry, weather): Abu Dhabi 2021, São Paulo 2021 and 2022, Silverstone 2021 and 2022, Hungary 2021, Monza 2021, Jeddah 2022, Zandvoort 2023, Singapore 2023, Miami 2024 and Austria 2024, each with a one-line note on why it matters.
+- **Favourites and your own races.** Star any race to pin it to the top of the menu. "Add another race" downloads any 2023+ Grand Prix straight from OpenF1 in the browser (about 20 requests, usually seconds), builds it with the same rules as the bundled data and keeps it in that browser (IndexedDB); a shared link to an added race offers to download it.
 - **Shareable comparisons.** The URL carries race, drivers, qualifying laps and view, e.g. [`?race=brazil&a=VER&b=NOR&mode=replay`](https://larmeinsamkeit-bot.github.io/raceopic/?race=brazil&a=VER&b=NOR&mode=replay).
 - **2026 season.** Calendar, driver and constructor standings after every round, a teammate head-to-head (official qualifying and race-pace gap in every round, in seconds or % of lap time), classifications, and per-round OpenF1 race archives.
 - **English and Chinese.** The interface follows the browser language; the EN / 中文 button switches and remembers it.
@@ -58,13 +60,13 @@ Las Vegas FP1 and FP2 in 2026 were wet (intermediates and wets only), so there w
 | Source | Used for |
 |---|---|
 | [OpenF1](https://openf1.org/docs/) | Race laps, sectors, stints, pit stops, race control, weather; practice long runs; qualifying telemetry for past seasons |
-| [F1Archive](https://f1archive.org/docs) | 2026 qualifying position and car telemetry |
+| [F1Archive](https://f1archive.org/docs) | 2026 qualifying position and car telemetry; the 2021–2024 classic races (timing, tyres, pit stops, race control, weather, qualifying telemetry) |
 | [Jolpica F1](https://github.com/jolpica/jolpica-f1) | Calendar, standings and classifications |
 
 The site is static and ships data snapshots in `dist/`:
 
 - `dist/lab-2026/` — one file per completed 2026 round (race timing plus up to four qualifying laps per driver), loaded when the round is picked.
-- `dist/past/` — selected earlier races (five qualifying laps per selected driver), also loaded on demand.
+- `dist/past/` — selected earlier races (five qualifying laps per selected driver) and the classic races (every driver, two qualifying laps each), also loaded on demand.
 - `dist/season-2026.json`, `dist/season-2026/` — season standings and per-round race archives.
 - `dist/predictions/` — pre-race forecasts and, after the race, their scores.
 
@@ -91,13 +93,14 @@ The individual steps, each needing network access (use fresh cache folders to pi
 ```sh
 python3 -B data-tools/pull_openf1.py --cache /tmp/raceopic-archive
 python3 -B data-tools/build_dataset.py /tmp/raceopic-archive dist/past
+python3 -B data-tools/build_classics.py --cache /tmp/raceopic-classics --dist dist
 python3 -B data-tools/pull_season.py --cache /tmp/raceopic-2026 --output dist all
 python3 -B data-tools/build_season_lab.py --cache /tmp/raceopic-season-lab --dist dist
 python3 -B data-tools/add_weather.py --dist dist --cache /tmp/raceopic-weather
 python3 -B data-tools/build_teammates.py dist
 ```
 
-`build_dataset.py` keeps past races already in `dist/past/` when their downloads are not in the cache, so one race can be added on its own. `build_season_lab.py --laps N` sets how many qualifying laps to keep per driver.
+`build_dataset.py` keeps past races already in `dist/past/` when their downloads are not in the cache, so one race can be added on its own. `build_classics.py` converts F1Archive's race feeds to the OpenF1 shape `build_dataset.build()` reads, so outlier laps, safety cars and the pace model follow the same rules; F1Archive has no "session started" message, so after a red flag the race counts as green once the first car completes the restart lap. Add a race by appending to `CLASSICS` and passing its id. The in-browser importer (`dist/importer.js`) is a line-for-line port of the same build and gives identical output on the bundled OpenF1 races. `build_season_lab.py --laps N` sets how many qualifying laps to keep per driver.
 
 Strategy forecast (run `predict` before the race, `evaluate` after it):
 
@@ -138,6 +141,8 @@ Raceopic 是一个 F1 数据分析网站，回答一个问题：**两位车手�
 - **整场回放**：全场车辆在赛道上移动，配实时排名、差距、轮胎与进站，由每圈圈速按排位圈的速度分布重建（非 GPS）。
 - **比赛进程与轮胎衰退**：全场每圈与领先者的差距（标出进站与安全车），以及各段轮胎修正燃油后的圈速与胎龄、衰退斜率。
 - **进站情景**：用全场数据拟合的干地模型，估算换一圈进站的得失。
+- **2021 年起的经典名局**：12 场完整收录（全场正赛计时、排位遥测、天气）：2021 阿布扎比、2021 与 2022 圣保罗、2021 与 2022 英国、2021 匈牙利、2021 意大利、2022 沙特、2023 荷兰、2023 新加坡、2024 迈阿密、2024 奥地利，每场附一句看点。
+- **收藏与自行加入比赛**：按 ☆ 收藏的比赛会排在选单最上方。「加入其他比赛」可直接在浏览器从 OpenF1 下载 2023 年起的任何一站，用与本站相同的规则整理，保存在这个浏览器里（IndexedDB）。
 - **可分享链接**：网址会记录赛事、车手、排位圈和模式。
 - **2026 赛季**：赛历、每轮后的车手与车队积分、整季队友对决、分类成绩与各站 OpenF1 正赛档案。
 - **中英文界面**：默认跟随浏览器语言，可用 EN / 中文 按钮切换并记住选择。

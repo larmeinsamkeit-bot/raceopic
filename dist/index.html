@@ -29,6 +29,7 @@
   <script src="deg.js" defer></script>
   <script src="weather.js" defer></script>
   <script src="racereplay.js" defer></script>
+  <script src="importer.js" defer></script>
   <script src="app.js?v=season-lab" defer></script>
 </head>
 <body class="pw">
@@ -52,9 +53,27 @@
     <section class="deck deck-compare" aria-label="对比设置" data-en-label="Comparison">
       <div class="deck-block">
         <span class="step" data-en="01 · Race">01 · 赛事</span>
-        <label class="field"><span class="sr-only" data-en="Grand Prix">大奖赛</span><select id="race" aria-label="大奖赛" data-en-label="Grand Prix"></select></label>
+        <div class="race-row">
+          <label class="field"><span class="sr-only" data-en="Grand Prix">大奖赛</span><select id="race" aria-label="大奖赛" data-en-label="Grand Prix"></select></label>
+          <button id="favourite" class="star" type="button" aria-pressed="false" aria-label="收藏这场比赛" data-en-label="Add this race to favourites" title="收藏这场比赛" data-en-title="Add this race to favourites">☆</button>
+        </div>
+        <p id="raceTagline" class="race-tagline"></p>
         <span class="coverage" id="coverage"></span>
         <p id="eventStatus" class="note event-status" role="status"></p>
+        <button id="removeRace" class="text-link remove-race" type="button" hidden data-en="Remove this race from this browser">从此浏览器移除这场比赛</button>
+        <details id="importPanel" class="import-panel">
+          <summary data-en="+ Add another race (2023 onwards)">＋ 加入其他比赛（2023 年起）</summary>
+          <div class="import-body">
+            <p class="note" data-en="Downloads race laps, tyres, pit stops, race control, weather and the six fastest qualifiers' telemetry from OpenF1, and keeps the race in this browser only. Usually under a minute.">从 OpenF1 下载正赛圈速、轮胎、进站、赛事控制、天气和排位前 6 名的遥测，只保存在这个浏览器里。通常不到一分钟。</p>
+            <div class="import-fields">
+              <label class="field"><span class="step" data-en="Season">赛季</span><select id="importYear"></select></label>
+              <label class="field"><span class="step" data-en="Race">比赛</span><select id="importRace"></select></label>
+            </div>
+            <button id="importGo" class="export" type="button" data-en="Download and add">下载并加入</button>
+            <progress id="importProgress" max="1" value="0" hidden></progress>
+            <p id="importStatus" class="note import-status" role="status"></p>
+          </div>
+        </details>
       </div>
       <div class="deck-block">
         <span class="step" data-en="02 · Drivers">02 · 车手</span>

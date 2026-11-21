@@ -98,7 +98,9 @@ function renderRaceReplay() {
     <path class="track-road" d="${path(reference)}"/>${cars}</svg>`;
   raceReplay.nodes = raceReplay.cars.map((_, i) => $(`rrCar${i}`));
   $('rrTime').max = 1000;
-  $('rrNote').textContent = (raceReplay.cars.length < 15
+  $('rrNote').textContent = (event.redFlag
+    ? L('本场曾出示红旗：重新起跑时差距已被清零，这里由圈速累加，红旗后的差距与顺序仅供参考。', 'This race was red-flagged: the restart reset the gaps, so gaps and order after it are added up from lap times and only approximate. ') : '') +
+    (raceReplay.cars.length < 15
     ? L(`本站只收录 ${raceReplay.cars.length} 位精选车手。`, `This race holds only ${raceReplay.cars.length} selected drivers. `) : '') +
     L('位置由每圈圈速按排位圈的速度分布重建，并非 GPS；第一圈与进站圈的位置较粗略，差距不含赛后罚时。',
       'Positions are rebuilt from each lap time using a qualifying lap\'s speed profile, not GPS; the first lap and pit laps are approximate, and gaps exclude post-race time penalties.');

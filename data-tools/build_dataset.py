@@ -308,13 +308,27 @@ def build(slug, source, *, name=None, telemetry=None):
         "id": slug, "wet": wet, "name": name or EVENT_NAMES[slug], "year": source["race"]["year"],
         "circuit": source["race"]["circuit_short_name"],
         "raceKey": source["race"]["session_key"], "qualiKey": source["quali"]["session_key"],
+        "date": (source["race"].get("date_start") or "")[:10] or None,
         "totalLaps": max(row["lap"] for rows in laps.values() for row in rows),
         "sourceLaps": sum(len(rows) for rows in laps.values()),
         "drivers": drivers, "telemetry": telemetry,
         "paceModel": None if wet else fit_pace(laps),
     }
 
-INDEX_FIELDS = ("id", "name", "year", "circuit", "raceKey", "wet")
+INDEX_FIELDS = ("id", "name", "year", "circuit", "raceKey", "wet", "date", "tagline", "taglineEn")
+
+def write_past_index(output):
+    """Index every event file in the folder, newest race first, so one race can be added
+    without re-fetching every other event's telemetry."""
+    entries = []
+    for path in sorted(output.glob("*.json")):
+        if path.name == "index.json":
+            continue
+        event = json.loads(path.read_text())
+        entries.append({key: event[key] for key in INDEX_FIELDS if event.get(key) is not None})
+    entries.sort(key=lambda entry: entry.get("date") or str(entry["year"]), reverse=True)
+    write_json(output / "index.json", entries)
+    print("index:", ", ".join(entry["id"] for entry in entries))
 
 def write_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
@@ -336,14 +350,4 @@ if __name__ == "__main__":
         print(event["name"], event["year"], event["sourceLaps"], len(event["drivers"]),
               {d: len(rows) for d, rows in event["telemetry"]["laps"].items()},
               event["paceModel"])
-    # Events already in the folder but not in these caches are kept, so one race can be added
-    # without re-fetching every other event's telemetry.
-    entries = []
-    for path in sorted(output.glob("*.json")):
-        if path.name == "index.json":
-            continue
-        event = json.loads(path.read_text())
-        entries.append({key: event[key] for key in INDEX_FIELDS})
-    entries.sort(key=lambda entry: -entry["raceKey"])
-    write_json(output / "index.json", entries)
-    print("index:", ", ".join(entry["id"] for entry in entries))
+    write_past_index(output)

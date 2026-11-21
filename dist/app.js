@@ -14,6 +14,7 @@ const state = {event: null, mode: 'dominance', sector: null, bend: null, bends: 
 const events = new Map();
 const seasonLab = new Map();
 const pastIndex = new Map();
+const savedIndex = new Map();
 let eventRequest = 0;
 // Comparison state shared through the address bar: race, drivers, qualifying laps and map mode.
 const MODE_PARAM = {dominance: 'dominance', miniMode: 'mini', lines: 'lines', replayMode: 'replay'};
@@ -94,6 +95,188 @@ function optionGroup(label, options) {
   return group;
 }
 
+// ---- Race menu: favourites, the 2026 season, classics, earlier seasons and races added here ----
+const FAVOURITES_KEY = 'raceopic:favourites';
+function readFavourites() {
+  try {
+    const list = JSON.parse(localStorage.getItem(FAVOURITES_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(id => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+let favourites = readFavourites();
+
+function raceEntry(id) {
+  return seasonLab.get(id) || pastIndex.get(id) || savedIndex.get(id) || null;
+}
+
+function raceLabel(id, withSeason) {
+  const entry = raceEntry(id);
+  if (!entry) return id;
+  if (seasonLab.has(id)) return `${withSeason ? '2026 ' : ''}R${String(entry.round).padStart(2, '0')} · ${gpName(entry.name)}`;
+  return `${entry.year} ${gpName(entry.name)}`;
+}
+
+function buildRaceMenu() {
+  const selected = $('race').value || state.event?.id;
+  const byDate = (a, b) => (b.date || String(b.year)).localeCompare(a.date || String(a.year));
+  const current = [...seasonLab.values()].sort((a, b) => b.round - a.round);
+  const past = [...pastIndex.values()].sort(byDate);
+  const saved = [...savedIndex.values()].sort(byDate);
+  favourites = favourites.filter(raceEntry);
+  const groups = [];
+  if (favourites.length) groups.push(optionGroup(L('★ 我的收藏', '★ Favourites'), favourites.map(id => option(id, `★ ${raceLabel(id, true)}`))));
+  groups.push(optionGroup(L('2026 赛季 · 已完赛', '2026 season · completed'), current.map(e => option(e.id, raceLabel(e.id)))));
+  const classics = past.filter(e => e.tagline);
+  if (classics.length) groups.push(optionGroup(L('经典名局 · 2021 年起', 'Classic races · since 2021'), classics.map(e => option(e.id, raceLabel(e.id)))));
+  const others = past.filter(e => !e.tagline);
+  if (others.length) groups.push(optionGroup(L('往季精选', 'Earlier seasons'), others.map(e => option(e.id, raceLabel(e.id)))));
+  if (saved.length) groups.push(optionGroup(L('我加入的比赛（仅此浏览器）', 'Added by you (this browser)'), saved.map(e => option(e.id, raceLabel(e.id)))));
+  $('race').replaceChildren(...groups);
+  if (selected && raceEntry(selected)) $('race').value = selected;
+}
+
+function saveFavourites() {
+  try {
+    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
+  } catch {
+    // Private windows can refuse storage; the star still works for this visit.
+  }
+}
+
+function renderRaceExtras() {
+  const event = state.event;
+  const on = favourites.includes(event.id);
+  const star = $('favourite');
+  star.textContent = on ? '★' : '☆';
+  star.setAttribute('aria-pressed', on);
+  const label = on ? L('取消收藏', 'Remove from favourites') : L('收藏这场比赛', 'Add this race to favourites');
+  star.setAttribute('aria-label', label);
+  star.title = label;
+  const entry = raceEntry(event.id) || {};
+  const tagline = event.tagline ? L(event.tagline, event.taglineEn || event.tagline) : '';
+  const notes = [tagline, entry.date || event.date ? `${entry.date || event.date}` : '',
+    event.telemetrySource === 'F1Archive' ? L('数据：F1Archive', 'Data: F1Archive') : event.imported ? L('由你从 OpenF1 加入', 'Added by you from OpenF1') : ''];
+  $('raceTagline').textContent = notes.filter(Boolean).join(' · ');
+  $('removeRace').hidden = !event.imported;
+}
+
+function toggleFavourite() {
+  const id = state.event.id;
+  favourites = favourites.includes(id) ? favourites.filter(f => f !== id) : [id, ...favourites];
+  saveFavourites();
+  buildRaceMenu();
+  $('race').value = id;
+  renderRaceExtras();
+}
+
+// ---- Adding a race from OpenF1 ----
+const importState = {races: new Map(), busy: false};
+
+async function loadImportRaces(preselect) {
+  const year = Number($('importYear').value);
+  $('importRace').replaceChildren(option('', L('正在读取赛历…', 'Loading the calendar…')));
+  $('importRace').disabled = $('importGo').disabled = true;
+  try {
+    const races = await listOpenF1Races(year);
+    if (Number($('importYear').value) !== year) return;
+    importState.races = new Map(races.map(race => [String(race.key), race]));
+    const bundled = race => [...pastIndex.values(), ...seasonLab.values()].find(e => e.date === race.date) ||
+      savedIndex.get(`openf1-${race.key}`);
+    $('importRace').replaceChildren(...races.map(race => {
+      const have = bundled(race);
+      return option(race.key, `${race.date.slice(5)} · ${gpName(race.name)}${have ? L('（已收录）', ' (already here)') : ''}`);
+    }));
+    if (preselect && importState.races.has(String(preselect))) $('importRace').value = preselect;
+    $('importRace').disabled = $('importGo').disabled = !races.length;
+    if (!races.length) $('importStatus').textContent = L('这个赛季在 OpenF1 还没有已完赛的正赛。', 'OpenF1 has no finished races for this season yet.');
+  } catch (error) {
+    console.error(error);
+    $('importRace').replaceChildren();
+    $('importStatus').textContent = L('无法连接 OpenF1，请稍后再试。', 'Could not reach OpenF1. Try again later.');
+  }
+}
+
+async function runImport() {
+  const race = importState.races.get($('importRace').value);
+  if (!race || importState.busy) return;
+  const existing = [...pastIndex.values(), ...seasonLab.values()].find(e => e.date === race.date)?.id ||
+    (savedIndex.has(`openf1-${race.key}`) ? `openf1-${race.key}` : null);
+  if (existing) {
+    $('race').value = existing;
+    pendingUrl = null;
+    await setEvent();
+    return;
+  }
+  importState.busy = true;
+  $('importGo').disabled = $('importYear').disabled = $('importRace').disabled = true;
+  $('importProgress').hidden = false;
+  try {
+    const event = await importOpenF1Race(race, {
+      progress: (fraction, text) => {
+        $('importProgress').value = fraction;
+        $('importStatus').textContent = text;
+      },
+    });
+    try {
+      await savedRaces.put(event);
+    } catch {
+      $('importStatus').textContent = L('浏览器拒绝保存，这场比赛只在本次访问中可用。', 'The browser refused to save it; the race is available for this visit only.');
+    }
+    events.set(event.id, event);
+    savedIndex.set(event.id, {id: event.id, name: event.name, year: event.year, circuit: event.circuit, date: event.date, wet: event.wet});
+    buildRaceMenu();
+    $('race').value = event.id;
+    pendingUrl = null;
+    await setEvent();
+    $('importStatus').textContent = L(`已加入 ${event.year} ${gpName(event.name)}。`, `Added the ${event.year} ${gpName(event.name)}.`);
+  } catch (error) {
+    console.error(error);
+    $('importStatus').textContent = L(`加入失败：${error.message}`, `Could not add this race: ${error.message}`);
+  } finally {
+    importState.busy = false;
+    $('importProgress').hidden = true;
+    $('importYear').disabled = false;
+  }
+  // Refresh the list so the race shows as already added.
+  await loadImportRaces(race.key);
+}
+
+async function removeImported() {
+  const id = state.event.id;
+  if (!state.event.imported) return;
+  try {
+    await savedRaces.remove(id);
+  } catch {
+    // Nothing stored; dropping it from the menu is enough.
+  }
+  savedIndex.delete(id);
+  events.delete(id);
+  favourites = favourites.filter(f => f !== id);
+  saveFavourites();
+  buildRaceMenu();
+  $('race').selectedIndex = 0;
+  pendingUrl = null;
+  await setEvent();
+}
+
+async function offerSharedImport(id) {
+  // A shared link to a race someone else added: point the importer at it.
+  const key = id.slice('openf1-'.length);
+  $('importPanel').open = true;
+  $('eventStatus').textContent = L('这个链接里的比赛是别人从 OpenF1 加入的，可在下方下载后查看。', 'This link points to a race someone added from OpenF1; download it below to view it.');
+  try {
+    const [session] = await openf1('sessions', new URLSearchParams({session_key: key}).toString());
+    if (session?.year >= 2023) {
+      $('importYear').value = session.year;
+      await loadImportRaces(key);
+    }
+  } catch {
+    // The importer stays on its default season.
+  }
+}
+
 async function setEvent() {
   const request = ++eventRequest;
   const id = $('race').value;
@@ -106,7 +289,8 @@ async function setEvent() {
       const url = seasonLab.has(id)
         ? `lab-2026/r${String(seasonLab.get(id).round).padStart(2, '0')}.json?v=season-lab`
         : `past/${encodeURIComponent(id)}.json?v=past`;
-      const event = await readEventData(url);
+      const event = savedIndex.has(id) ? await savedRaces.get(id) : await readEventData(url);
+      if (!event) throw new Error('Saved race is missing');
       if (event.id !== id) throw new Error('Race data does not match the requested event');
       events.set(id, event);
     }
@@ -146,6 +330,7 @@ function renderEvent() {
   $('coverage').textContent = L(`正赛 ${state.event.sourceLaps.toLocaleString()} 条 · 遥测 ${trackDrivers.length}/${state.event.drivers.length} 位`,
     `${state.event.sourceLaps.toLocaleString()} race laps · telemetry ${trackDrivers.length}/${state.event.drivers.length} drivers`);
   $('circuit').textContent = state.event.circuit;
+  renderRaceExtras();
   changePair();
 }
 
@@ -554,7 +739,7 @@ function exportCsv() {
   const lines = ['source,season,session_key,driver,lap,lap_seconds,sector_1,sector_2,sector_3,compound,tyre_age,exclusion'];
   for (const driver of pair()) {
     for (const lap of driver.laps) {
-      lines.push(['OpenF1', year, raceKey, driver.code, lap.lap, lap.time, ...lap.sectors,
+      lines.push([state.event.telemetrySource || 'OpenF1', year, raceKey, driver.code, lap.lap, lap.time, ...lap.sectors,
         lap.compound, lap.age, lap.excluded].join(','));
     }
   }
@@ -568,20 +753,37 @@ function exportCsv() {
 
 async function init() {
   try {
-    const [season, legacy] = await Promise.all([
-      readEventData('lab-2026/index.json?v=season-lab'), readEventData('past/index.json?v=past'),
+    const [season, legacy, saved] = await Promise.all([
+      readEventData('lab-2026/index.json?v=season-lab'), readEventData('past/index.json?v=past'), savedRaces.list(),
     ]);
     const current = season.sort((a, b) => b.round - a.round);
     current.forEach(entry => seasonLab.set(entry.id, entry));
-    const past = legacy.filter(event => event.year < 2026).sort((a, b) => b.raceKey - a.raceKey);
-    past.forEach(event => pastIndex.set(event.id, event));
-    $('race').replaceChildren(
-      optionGroup(L('2026 赛季 · 已完赛', '2026 season · completed'), current.map(event => option(event.id, `R${String(event.round).padStart(2, '0')} · ${gpName(event.name)}`))),
-      optionGroup(L('往季精选', 'Earlier seasons'), past.map(event => option(event.id, `${event.year} ${gpName(event.name)}`))),
-    );
+    legacy.filter(event => event.year < 2026).forEach(event => pastIndex.set(event.id, event));
+    saved.forEach(entry => savedIndex.set(entry.id, entry));
+    buildRaceMenu();
+    // With favourites first in the menu, start on the newest 2026 round unless a link says otherwise.
+    if (current.length) $('race').value = current[0].id;
     const requestedRound = Number(pendingUrl.get('round'));
     const requested = current.find(event => event.round === requestedRound)?.id ?? pendingUrl.get('race');
-    if (seasonLab.has(requested) || pastIndex.has(requested)) $('race').value = requested;
+    if (raceEntry(requested)) $('race').value = requested;
+    $('favourite').onclick = toggleFavourite;
+    $('removeRace').onclick = removeImported;
+    const thisYear = new Date().getFullYear();
+    $('importYear').replaceChildren(...[2025, 2024, 2023].filter(y => y < thisYear || y === 2023).map(y => option(y, String(y))));
+    $('importYear').onchange = () => {
+      $('importStatus').textContent = '';
+      loadImportRaces();
+    };
+    $('importGo').onclick = runImport;
+    let calendarLoaded = false;
+    $('importPanel').addEventListener('toggle', () => {
+      if ($('importPanel').open && !calendarLoaded) {
+        calendarLoaded = true;
+        loadImportRaces();
+      }
+    });
+    const sharedRace = /^openf1-\d+$/.test(requested || '') && !raceEntry(requested) ? requested : null;
+    if (sharedRace) calendarLoaded = true;
     const requestedMode = Object.keys(MODE_PARAM).find(key => MODE_PARAM[key] === pendingUrl.get('mode'));
     if (requestedMode) {
       state.mode = requestedMode;
@@ -622,6 +824,7 @@ async function init() {
     await setEvent();
     pendingUrl = null;
     writeUrl();
+    if (sharedRace) offerSharedImport(sharedRace);
     $('copyLink').onclick = async () => {
       try {
         await navigator.clipboard.writeText(location.href);
