@@ -477,5 +477,25 @@
     "Only a few editions can be backtested; the chosen weight is a small-sample choice."
   ],
   "notes_zh": [],
-  "result": null
+  "result": {
+    "scored": "2026-11-22T08:01:05+00:00",
+    "laps": 50,
+    "conditions": "dry",
+    "counts_toward_record": true,
+    "drivers": 19,
+    "stop_count_hit_rate": 0.842,
+    "top_sequence_hit_rate": 0.0,
+    "first_stop_in_window": 0.947,
+    "first_stop_mae_laps": 1.11,
+    "stop_count_brier": 0.34,
+    "actual_stop_counts": {
+      "1": 16,
+      "2": 3
+    },
+    "actual_sequences": {
+      "S-M": 13,
+      "S-M-S": 3,
+      "M-S": 3
+    }
+  }
 }
