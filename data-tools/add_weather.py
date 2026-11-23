@@ -61,6 +61,8 @@ def main(dist, cache):
         if path.name == "index.json":
             continue
         event = json.loads(path.read_text())
+        if event.get("classic"):
+            continue  # build_classics.py attaches F1Archive weather itself
         query = {"session_key": event["raceKey"]}
         event["weather"] = lap_weather(fetch(cache, "laps", query), fetch(cache, "weather", query))
         write(path, event)

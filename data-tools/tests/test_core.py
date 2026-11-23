@@ -248,5 +248,77 @@ class Refresh(unittest.TestCase):
             self.assertEqual([p.name for p in refresh.forecasts_to_score(dist, now)], ["done.json"])
 
 
+class ClassicsTest(unittest.TestCase):
+    """F1Archive race payloads become the OpenF1-shaped source build() reads."""
+
+    def payloads(self):
+        def lap(driver, number, time, start, out=False, sectors=True, finished=True):
+            return {"driver": driver, "lap": number, "lap_time_ns": time, "start_ns": start,
+                    "end_ns": start + 90 * NS if finished else start + 20 * NS,
+                    "s1_ns": 30 * NS if sectors else None, "s2_ns": 30 * NS if sectors else None,
+                    "s3_ns": 30 * NS if sectors and finished else None,
+                    "pit_in_ns": None, "pit_out_ns": start if out else None, "compound": "HARD" if out else "MEDIUM",
+                    "tyre_age": 1 if out else number + 2}
+        base = 1000 * NS
+        laps = [lap("1", 1, 90 * NS, base), lap("1", 2, None, base + 90 * NS), lap("1", 3, 90 * NS, base + 180 * NS, out=True),
+                lap("1", 4, None, base + 270 * NS, finished=False),
+                lap("44", 1, 91 * NS, base), lap("44", 2, 90 * NS, base + 91 * NS)]
+        season = {"events": [{"slug": "abu-dhabi", "round": 22, "location": "Yas Island", "sessions": [
+            {"kind": "race", "slug": "race", "key": "2021-abu-dhabi-race", "start_utc": "2021-12-12T13:00:00Z"},
+            {"kind": "qualifying", "slug": "qualifying", "key": "2021-abu-dhabi-qualifying"}]}]}
+        return {
+            "/seasons/2021": season,
+            "/sessions/2021/abu-dhabi/race/laps": laps,
+            "/sessions/2021/abu-dhabi/race/drivers": [
+                {"number": "1", "abbreviation": "AAA", "full_name": "Ann AARON", "team_name": "T", "team_colour": "#0600EF"},
+                {"number": "44", "abbreviation": "BBB", "full_name": "Ben BAKER", "team_name": "U", "team_colour": "00D2BE"}],
+            "/sessions/2021/abu-dhabi/race/pit-stops": [{"driver_number": "1", "lap": 2, "duration_ns": 22 * NS}],
+            "/sessions/2021/abu-dhabi/race/race-control": [{"ts_ns": base, "message": "GREEN LIGHT - PIT EXIT OPEN", "flag": "GREEN"}],
+            "/sessions/2021/abu-dhabi/race/weather": [{"ts_ns": base, "air_temp_c": 25, "track_temp_c": 30, "rainfall": False}],
+            "/sessions/2021/abu-dhabi/race/results": [],
+        }
+
+    def test_source_from_archive(self):
+        import build_classics
+        data = self.payloads()
+        original = build_classics.get
+        build_classics.get = lambda cache, route, **params: data[route]
+        try:
+            source, quali_route, weather, _, _ = build_classics.source_from_archive(None, 2021, "abu-dhabi")
+        finally:
+            build_classics.get = original
+        laps = {(r["driver_number"], r["lap_number"]): r for r in source["laps"]}
+        # A completed lap without a lap time takes end - start; an unfinished lap stays empty.
+        self.assertEqual(laps[(1, 2)]["lap_duration"], 90.0)
+        self.assertIsNone(laps[(1, 4)]["lap_duration"])
+        self.assertTrue(laps[(1, 3)]["is_pit_out_lap"])
+        stints = [(s["stint_number"], s["compound"], s["lap_start"], s["lap_end"], s["tyre_age_at_start"])
+                  for s in source["stints"] if s["driver_number"] == 1]
+        self.assertEqual(stints, [(1, "MEDIUM", 1, 2, 2), (2, "HARD", 3, 4, 0)])
+        self.assertEqual(source["pit"], [{"driver_number": 1, "lap_number": 2, "pit_duration": 22.0}])
+        roster = {d["driver_number"]: d for d in source["drivers"]}
+        self.assertEqual((roster[1]["full_name"], roster[1]["last_name"], roster[1]["team_colour"]), ("Ann Aaron", "Aaron", "0600EF"))
+        self.assertEqual(source["race"]["circuit_short_name"], "Yas Island")
+        self.assertEqual(quali_route, "/sessions/2021/abu-dhabi/qualifying")
+        self.assertEqual(weather[0], {"lap": 1, "track": 30, "air": 25, "rain": False})
+        # Race-control and lap times share one clock, so neutral periods line up with laps.
+        self.assertEqual(laps[(1, 1)]["date_start"][:19], source["race_control"][0]["date"][:19])
+
+    def test_red_flag_restart(self):
+        from build_classics import restart_signals
+        messages = [{"ts_ns": 100 * NS, "message": "RED FLAG", "flag": "RED"},
+                    {"ts_ns": 900 * NS, "message": "RACE WILL RESUME AT 15:56 - STANDING START"},
+                    {"ts_ns": 1000 * NS, "message": "SAFETY CAR WILL ENTER PITS: STANDING START"}]
+        laps = [{"start_ns": 50 * NS, "end_ns": 1005 * NS}, {"start_ns": 1010 * NS, "end_ns": 1150 * NS},
+                {"start_ns": 1011 * NS, "end_ns": 1152 * NS}, {"start_ns": 1150 * NS, "end_ns": 1240 * NS}]
+        added = [m for m in restart_signals(messages, laps) if m.get("category") == "Synthetic"]
+        # Green once the first car completes the restart lap that starts after the last start message.
+        self.assertEqual([(m["ts_ns"] // NS, m["message"]) for m in added], [(1150, "SESSION STARTED"), (1150, "STANDING START")])
+        dated = [{"date": f"2000-01-01T00:{m['ts_ns'] // NS // 60:02d}:{m['ts_ns'] // NS % 60:02d}+00:00", **m}
+                 for m in restart_signals(messages, laps)]
+        start, end = neutral_periods(dated)[0]
+        self.assertEqual(end - start, 1050)
+
+
 if __name__ == "__main__":
     unittest.main()

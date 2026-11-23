@@ -124,6 +124,21 @@ try {
   check(restored[0] === 'brazil' && restored[1].startsWith('VER') && restored[2].startsWith('LEC') && restored[3] === 'true',
     `shared URL restores ${restored.join(' / ')}`);
 
+  // Classic races and favourites: the star moves a race to the top of the menu and survives a reload.
+  await page.goto(base + 'index.html?race=2021-abu-dhabi');
+  await loaded(page);
+  check((await page.textContent('#raceTagline')).includes('2021-12-12'), 'classic race shows its tagline and date');
+  await page.$eval('#rrTime', el => { el.value = 1000; el.dispatchEvent(new Event('input')); });
+  const classicPodium = await page.$$eval('#rrBoard li strong', r => r.slice(0, 3).map(x => x.textContent));
+  check(classicPodium.join(' ') === 'VER HAM SAI', `2021 Abu Dhabi replay finishing order ${classicPodium.join(' ')}`);
+  await page.click('#favourite');
+  await page.reload();
+  await loaded(page);
+  const firstGroup = await page.$eval('#race optgroup', g => [g.label, g.children[0]?.value]);
+  check(/★/.test(firstGroup[0]) && firstGroup[1] === '2021-abu-dhabi', `favourite is first in the menu after a reload (${firstGroup.join(' ')})`);
+  check(await page.$eval('#favourite', b => b.getAttribute('aria-pressed')) === 'true', 'favourite star stays on');
+  await page.click('#favourite');
+
   // Season page: standings, teammates, forecasts.
   await page.goto(base + 'season.html');
   await page.waitForSelector('#seasonContent:not([hidden])', {timeout: 20000});
@@ -134,7 +149,7 @@ try {
 
   // English: no Chinese left on either page except the language toggle.
   const english = watch(await browser.newPage({viewport: {width: 1440, height: 1000}, locale: 'en-US'}));
-  for (const url of ['index.html?race=2026-r06&mode=replay', 'season.html']) {
+  for (const url of ['index.html?race=2026-r06&mode=replay', 'index.html?race=2022-british', 'season.html']) {
     await english.goto(base + url);
     await english.waitForTimeout(3000);
     const leftover = await english.evaluate(() => document.body.innerText.split('\n')
