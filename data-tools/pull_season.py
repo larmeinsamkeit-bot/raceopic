@@ -4,7 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-from time import sleep
+from threading import Lock
+from time import monotonic, sleep
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -16,18 +17,34 @@ DATASETS = ("drivers", "laps", "stints", "pit", "weather", "race_control")
 SESSION_LABELS = ("FirstPractice", "SecondPractice", "ThirdPractice", "SprintQualifying",
                   "Sprint", "Qualifying")
 
+_pace = Lock()
+_last = [0.0]
+
+
+def _wait_turn():
+    """Jolpica allows 4 requests a second and 500 an hour; space every call, across threads."""
+    with _pace:
+        delay = _last[0] + 0.35 - monotonic()
+        if delay > 0:
+            sleep(delay)
+        _last[0] = monotonic()
+
+
 def read_jolpica(path):
     url = JOLPICA + path.strip("/") + ("/" if path else "") + "?limit=100"
-    for attempt in range(5):
+    for attempt in range(8):
+        _wait_turn()
         try:
             with urlopen(Request(url, headers={"User-Agent": "Raceopic historical archive"}), timeout=20) as result:
                 return json.load(result)["MRData"]
         except HTTPError as error:
-            if error.code not in (429, 500, 502, 503, 504) or attempt == 4:
+            if error.code not in (429, 500, 502, 503, 504) or attempt == 7:
                 raise
-            sleep(min(12, 2 * (attempt + 1)))
+            retry_after = error.headers.get("Retry-After") if error.headers else None
+            wait = int(retry_after) if retry_after and retry_after.isdigit() else 5 * 2 ** min(attempt, 3)
+            sleep(min(60, wait))
         except (TimeoutError, URLError):
-            if attempt == 4:
+            if attempt == 7:
                 raise
             sleep(1 + attempt)
 

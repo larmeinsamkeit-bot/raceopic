@@ -36,9 +36,12 @@ const check = (ok, message) => {
 
 const browser = await chromium.launch();
 const errors = [];
+// The season page also asks live public APIs (Jolpica, OpenF1) for fresher data and falls back to
+// the bundled files when they refuse, so only this site's own failed files count as errors.
 const watch = page => {
   page.on('pageerror', e => errors.push(e.message));
-  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', m => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text()); });
+  page.on('response', r => { if (r.url().startsWith(base) && r.status() >= 400) errors.push(`${r.status()} ${r.url()}`); });
   return page;
 };
 const loaded = page => page.waitForFunction(() => !document.getElementById('eventStatus')?.textContent, null, {timeout: 20000});
